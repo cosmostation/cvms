@@ -2,6 +2,8 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 
 	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/common/types"
@@ -35,4 +37,25 @@ func StoryStakingValidatorParser(resp []byte) ([]types.CosmosStakingValidator, e
 	}
 
 	return stakingValidatorList, nil
+}
+
+// story upgrade parser
+func StoryUpgradeParser(resp []byte) (
+	/* upgrade height */ int64,
+	/* upgrade plan name  */ string,
+	error) {
+	var result types.StoryUpgradeResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return 0, "", fmt.Errorf("parsing error: %s", err.Error())
+	}
+
+	if result.Msg.Plan.Height == "" {
+		return 0, "", nil
+	}
+
+	upgradeHeight, err := strconv.ParseInt(result.Msg.Plan.Height, 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("converting error: %s", err.Error())
+	}
+	return upgradeHeight, result.Msg.Plan.Name, nil
 }

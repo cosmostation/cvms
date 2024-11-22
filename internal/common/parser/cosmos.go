@@ -2,6 +2,7 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -74,39 +75,41 @@ func CosmosBlockParser(resp []byte) (
 
 func CosmosStatusParser(resp []byte) (
 	/* latest block height */ int64,
+	/* latest block timestamp */ time.Time,
 	/* unexpected error */ error,
 ) {
 	var preResult map[string]interface{}
 	if err := json.Unmarshal(resp, &preResult); err != nil {
-		return 0, errors.Wrap(err, "failed to unmarshal json in parser")
+		return 0, time.Time{}, errors.Wrap(err, "failed to unmarshal json in parser")
 	}
 
 	_, ok := preResult["jsonrpc"].(string)
-	if ok { // v34
-		var resultV34 types.CosmosV34StatusResponse
-		if err := json.Unmarshal(resp, &resultV34); err != nil {
-			return 0, errors.Wrap(err, "failed to unmarshal json in parser")
+	if ok {
+		var result types.CosmosV34StatusResponse
+		if err := json.Unmarshal(resp, &result); err != nil {
+			return 0, time.Time{}, errors.Wrap(err, "failed to unmarshal json in parser")
 		}
 
-		blockHeight, err := strconv.ParseInt(resultV34.Result.SyncInfo.LatestBlockHeight, 10, 64)
+		blockTimestamp := result.Result.SyncInfo.LatestBlockTime
+		blockHeight, err := strconv.ParseInt(result.Result.SyncInfo.LatestBlockHeight, 10, 64)
 		if err != nil {
-			return 0, errors.Wrap(err, "failed to convert from stirng to float in parser")
+			return 0, time.Time{}, errors.Wrap(err, "failed to convert from stirng to float in parser")
 		}
 
-		return blockHeight, nil
-
-	} else { // v37
-		var resultV37 types.CosmosV37StatusResponse
-		if err := json.Unmarshal(resp, &resultV37); err != nil {
-			return 0, errors.Wrap(err, "failed to unmarshal json in parser")
+		return blockHeight, blockTimestamp, nil
+	} else {
+		var result types.CosmosV37StatusResponse
+		if err := json.Unmarshal(resp, &result); err != nil {
+			return 0, time.Time{}, errors.Wrap(err, "failed to unmarshal json in parser")
 		}
 
-		blockHeight, err := strconv.ParseInt(resultV37.SyncInfo.LatestBlockHeight, 10, 64)
+		blockTimestamp := result.SyncInfo.LatestBlockTime
+		blockHeight, err := strconv.ParseInt(result.SyncInfo.LatestBlockHeight, 10, 64)
 		if err != nil {
-			return 0, errors.Wrap(err, "failed to convert from stirng to float in parser")
+			return 0, time.Time{}, errors.Wrap(err, "failed to convert from stirng to float in parser")
 		}
 
-		return blockHeight, nil
+		return blockHeight, blockTimestamp, nil
 	}
 }
 
@@ -147,4 +150,25 @@ func CosmosStakingValidatorParser(resp []byte) ([]types.CosmosStakingValidator, 
 		return nil, common.ErrFailedJsonUnmarshal
 	}
 	return result.Validators, nil
+}
+
+// cosmos upgrade parser
+func CosmosUpgradeParser(resp []byte) (
+	/* upgrade height */ int64,
+	/* upgrade plan name  */ string,
+	error) {
+	var result types.CosmosUpgradeResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return 0, "", fmt.Errorf("parsing error: %s", err.Error())
+	}
+
+	if result.Plan.Height == "" {
+		return 0, "", nil
+	}
+
+	upgradeHeight, err := strconv.ParseInt(result.Plan.Height, 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("converting error: %s", err.Error())
+	}
+	return upgradeHeight, result.Plan.Name, nil
 }

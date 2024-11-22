@@ -2,8 +2,9 @@ package router
 
 import (
 	"github.com/cosmostation/cvms/internal/common"
+	commonparser "github.com/cosmostation/cvms/internal/common/parser"
+	commontypes "github.com/cosmostation/cvms/internal/common/types"
 	"github.com/cosmostation/cvms/internal/packages/utility/upgrade/api"
-	"github.com/cosmostation/cvms/internal/packages/utility/upgrade/parser"
 	"github.com/cosmostation/cvms/internal/packages/utility/upgrade/types"
 )
 
@@ -11,40 +12,22 @@ func GetStatus(client *common.Exporter, chainName string) (types.CommonUpgrade, 
 	var (
 		commonUpgradeQueryPath string
 		commonUpgradeParser    func([]byte) (int64, string, error)
-
-		commonBlockQueryPath string
-		commonBlockParser    func([]byte) (int64, int64, error)
-
-		commonLatestBlockQueryPath string
 	)
 
 	switch chainName {
 	case "celestia":
-		commonUpgradeQueryPath = types.CelestiaUpgradeQueryPath
-		commonUpgradeParser = parser.CelestiaUpgradeParser
+		commonUpgradeQueryPath = commontypes.CelestiaUpgradeQueryPath
+		commonUpgradeParser = commonparser.CelestiaUpgradeParser
+		return api.GetUpgradeStatus(client, commonUpgradeQueryPath, commonUpgradeParser)
 
-		commonLatestBlockQueryPath = types.CosmosLatestBlockQueryPath
-		commonBlockQueryPath = types.CosmosBlockQueryPath
-		commonBlockParser = parser.CosmosBlockParser
-
-		return api.GetUpgradeStatus(client,
-			commonUpgradeQueryPath, commonUpgradeParser,
-			commonBlockQueryPath, commonBlockParser,
-			commonLatestBlockQueryPath,
-		)
+	case "story":
+		commonUpgradeQueryPath = commontypes.StoryUpgradeQueryPath
+		commonUpgradeParser = commonparser.StoryUpgradeParser
+		return api.GetUpgradeStatus(client, commonUpgradeQueryPath, commonUpgradeParser)
 
 	default:
-		commonUpgradeQueryPath = types.CosmosUpgradeQueryPath
-		commonUpgradeParser = parser.CosmosUpgradeParser
-
-		commonLatestBlockQueryPath = types.CosmosLatestBlockQueryPath
-		commonBlockQueryPath = types.CosmosBlockQueryPath
-		commonBlockParser = parser.CosmosBlockParser
-
-		return api.GetUpgradeStatus(client,
-			commonUpgradeQueryPath, commonUpgradeParser,
-			commonBlockQueryPath, commonBlockParser,
-			commonLatestBlockQueryPath,
-		)
+		commonUpgradeQueryPath = commontypes.CosmosUpgradeQueryPath
+		commonUpgradeParser = commonparser.CosmosUpgradeParser
+		return api.GetUpgradeStatus(client, commonUpgradeQueryPath, commonUpgradeParser)
 	}
 }

@@ -16,35 +16,40 @@ func TestRouter(t *testing.T) {
 
 	TestCases := []struct {
 		testingName string
-		hostAddress string
 		chainName   string
+		rpcEndpoint string
+		apiEndpoint string
 	}{
 		{
 			testingName: "Upgrade exist Chain",
 			chainName:   "cosmso",
-			hostAddress: os.Getenv("TEST_UPGRADE_ENDPOINT_1"),
-		},
-		{
-			testingName: "Upgrade not exist Chain",
-			chainName:   "cosmos",
-			hostAddress: os.Getenv("TEST_UPGRADE_ENDPOINT_2"),
+			rpcEndpoint: os.Getenv("TEST_UPGRADE_RPC_ENDPOINT"),
+			apiEndpoint: os.Getenv("TEST_UPGRADE_API_ENDPOINT"),
 		},
 		{
 			testingName: "Celestia Signal Upgrade",
 			chainName:   "celestia",
-			hostAddress: os.Getenv("TEST_UPGRADE_ENDPOINT_3"),
+			rpcEndpoint: os.Getenv("TEST_CELESTIA_RPC_ENDPOINT"),
+			apiEndpoint: os.Getenv("TEST_CELESTIA_API_ENDPOINT"),
+		},
+		{
+			testingName: "Story Upgrade",
+			chainName:   "story",
+			rpcEndpoint: os.Getenv("TEST_STORY_RPC_ENDPOINT"),
+			apiEndpoint: os.Getenv("TEST_STORY_API_ENDPOINT"),
 		},
 	}
 
 	for _, tc := range TestCases {
 		exporter := tests.GetTestExporter()
 		t.Run(tc.testingName, func(t *testing.T) {
-			if !assert.NotEqualValues(t, tc.hostAddress, "") {
+			if !assert.NotEqualValues(t, tc.apiEndpoint, "") && !assert.NotEqualValues(t, tc.rpcEndpoint, "") {
 				// hostaddress is empty
 				t.FailNow()
 			}
 
-			exporter.SetAPIEndPoint(tc.hostAddress)
+			exporter.SetAPIEndPoint(tc.apiEndpoint)
+			exporter.SetRPCEndPoint(tc.rpcEndpoint)
 			CommonUpgrade, err := router.GetStatus(exporter, tc.chainName)
 			if err != nil && err != common.ErrCanSkip {
 				t.Log("Unexpected Error Occured!")

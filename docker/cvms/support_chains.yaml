@@ -854,6 +854,8 @@ odyssey-0:
     decimal: 6
   packages:
     - block
+    - upgrade
+    - uptime
     - voteindexer
 omniflixhub-1:
   chain_name: omniflix

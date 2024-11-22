@@ -251,3 +251,16 @@ type CosmosSlashingParamsResponse struct {
 		SlashFractionDowntime   string `json:"slash_fraction_downtime"`
 	} `json:"params"`
 }
+
+const CosmosUpgradeQueryPath = "/cosmos/upgrade/v1beta1/current_plan"
+
+// ref; https://github.com/cosmos/cosmos-sdk/blob/main/x/upgrade/proto/cosmos/upgrade/v1beta1/query.proto#L14
+type CosmosUpgradeResponse struct {
+	Plan struct {
+		Name                string `json:"name"`
+		Time                string `json:"time"`
+		Height              string `json:"height"`
+		Info                string `json:"info"`
+		UpgradedClientState string `json:"upgraded_client_state"`
+	} `json:"plan"`
+}

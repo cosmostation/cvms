@@ -13,6 +13,31 @@ import (
 	"github.com/pkg/errors"
 )
 
+func GetStatus(c common.CommonClient) (
+	/* block height */ int64,
+	/* block timestamp */ time.Time,
+	error,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	requester := c.RPCClient.R().SetContext(ctx)
+	resp, err := requester.Get(types.CosmosStatusQueryPath)
+	if err != nil {
+		return 0, time.Time{}, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return 0, time.Time{}, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
+	}
+
+	latestBlockHeight, latestBlockTimestamp, err := parser.CosmosStatusParser(resp.Body())
+	if err != nil {
+		return 0, time.Time{}, errors.Wrapf(err, "got data, but failed to parse the data")
+	}
+
+	return latestBlockHeight, latestBlockTimestamp, nil
+}
+
 // query a new block to find missed validators index
 func GetBlock(c common.CommonClient, height int64) (
 	/* block height */ int64,

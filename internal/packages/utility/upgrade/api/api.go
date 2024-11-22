@@ -2,12 +2,10 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"math"
 	"net/http"
-	"strings"
 
 	"github.com/cosmostation/cvms/internal/common"
+	"github.com/cosmostation/cvms/internal/common/api"
 	"github.com/cosmostation/cvms/internal/packages/utility/upgrade/types"
 )
 
@@ -16,8 +14,6 @@ const blockHeightInternal = 1000
 func GetUpgradeStatus(
 	c *common.Exporter,
 	CommonUpgradeQueryPath string, CommonUpgradeParser func([]byte) (int64, string, error),
-	CommonBlockQueryPath string, CommonBlockParser func([]byte) (int64, int64, error),
-	CommonLatestBlockQueryPath string,
 ) (types.CommonUpgrade, error) {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, common.Timeout)
@@ -48,48 +44,29 @@ func GetUpgradeStatus(
 		c.Infof("found the onchain upgrade at %d", upgradeHeight)
 
 		// exist onchain upgrade
-		resp, err := requester.Get(CommonLatestBlockQueryPath)
+		latestBlockHeight, latestBlockTimestamp, err := api.GetStatus(c.CommonClient)
 		if err != nil {
 			c.Errorf("api error: %s", err)
 			return types.CommonUpgrade{}, common.ErrFailedHttpRequest
 		}
-		if resp.StatusCode() != http.StatusOK {
-			c.Errorf("api error: [%d] %s", resp.StatusCode(), err)
-			return types.CommonUpgrade{}, common.ErrGotStrangeStatusCode
-		}
 
-		latestHeight, latestHeightTime, err := CommonBlockParser(resp.Body())
-		if err != nil {
-			return types.CommonUpgrade{}, err
-		}
-
-		previousHeight := (latestHeight - blockHeightInternal)
-		previousBlockQueryPath := strings.Replace(CommonBlockQueryPath, "{height}", fmt.Sprint(previousHeight), -1)
-
-		resp, err = requester.Get(previousBlockQueryPath)
+		previousHeight, previousBlockTimestamp, _, _, _, _, err := api.GetBlock(c.CommonClient, (latestBlockHeight - blockHeightInternal))
 		if err != nil {
 			c.Errorf("api error: %s", err)
 			return types.CommonUpgrade{}, common.ErrFailedHttpRequest
-		}
-		if resp.StatusCode() != http.StatusOK {
-			c.Errorf("api error: [%d] %s", resp.StatusCode(), err)
-			return types.CommonUpgrade{}, common.ErrGotStrangeStatusCode
-		}
-
-		previousHeight, previousHeightTime, err := CommonBlockParser(resp.Body())
-		if err != nil {
-			return types.CommonUpgrade{}, err
 		}
 
 		// calculate remaining time seconds
-		estimatedBlockTime := float64(latestHeightTime-previousHeightTime) / float64(latestHeight-previousHeight)
-		rawRemainingTime := float64(upgradeHeight-latestHeight) * estimatedBlockTime
-		remainingTime := math.Round(rawRemainingTime)
+		estimatedBlockTime := (latestBlockTimestamp.Unix() - previousBlockTimestamp.Unix()) / (latestBlockHeight - previousHeight)
+		remainingHeight := upgradeHeight - latestBlockHeight
+		remainingTime := remainingHeight * estimatedBlockTime
 
-		c.Infoln("on-chain upgrade's remaining time:", remainingTime, "seconds")
+		c.Infof("on-chain upgrade's remaining time: %d seconds", remainingTime)
+		c.Infof("on-chain upgrade's remaining height: %d blocks", remainingHeight)
 		return types.CommonUpgrade{
-			RemainingTime: remainingTime,
-			UpgradeName:   upgradeName,
+			UpgradeName:     upgradeName,
+			RemainingTime:   float64(remainingTime),
+			RemainingHeight: float64(remainingHeight),
 		}, nil
 	}
 }

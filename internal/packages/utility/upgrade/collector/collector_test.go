@@ -30,12 +30,8 @@ func Test_UpgradeCollector(t *testing.T) {
 			chainName:    "cosmos",
 			protocolType: "cosmos",
 			endpoints: common.Endpoints{
-				APIs: []string{
-					os.Getenv("TEST_UPGRADE_ENDPOINT_1"),
-					os.Getenv("TEST_UPGRADE_ENDPOINT_2"),
-					os.Getenv("TEST_UPGRADE_ENDPOINT_3"),
-					os.Getenv("TEST_UPGRADE_ENDPOINT_4"),
-				},
+				RPCs: []string{os.Getenv("TEST_UPGRADE_RPC_ENDPOINT")},
+				APIs: []string{os.Getenv("TEST_UPGRADE_API_ENDPOINT")},
 			},
 		},
 	}
