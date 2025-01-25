@@ -51,7 +51,7 @@ func MakeProposerAddress(keyType string, decodedPubkey []byte) (string, error) {
 		return strings.ToUpper(hex.EncodeToString(sumTruncated(decodedPubkey))), nil
 	}
 	// return "", and error unsupported key
-	return "", errors.Errorf("unsupprted key type: %s", keyType)
+	return "", errors.Errorf("unsupported key type: %s", keyType)
 }
 
 // ref; cosmos-sdk/crypto/keys/secp256k1

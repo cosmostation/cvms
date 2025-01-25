@@ -169,7 +169,7 @@ func Test_MakeProposerAddressFromValconsAddress(t *testing.T) {
 	hrp, bz, _ := sdkhelper.DecodeAndConvert(valconsAddress)
 
 	t.Logf("parsed hrp: %s", hrp)
-	t.Logf("parsed prposer bytes: %s", fmt.Sprintf("%X", bz))
+	t.Logf("parsed proposer bytes: %s", fmt.Sprintf("%X", bz))
 }
 
 func Test_GetConsumerValconsAddressFromPubkey(t *testing.T) {

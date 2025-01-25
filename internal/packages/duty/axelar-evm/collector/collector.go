@@ -42,7 +42,7 @@ func Start(p common.Packager) error {
 		}
 		return nil
 	}
-	return errors.Errorf("unsupprted chain type: %s", p.ProtocolType)
+	return errors.Errorf("unsupported chain type: %s", p.ProtocolType)
 }
 
 func loop(c *common.Exporter, p common.Packager) {

@@ -60,7 +60,7 @@ chains:
     tracking_addresses:
       - 'bbn1x5wgh6vwye60wv3dtshs9dmqggwfx2ldy7agnk' # your fp orchestrator address or validator address to follow your gas balance
     nodes:
-      # NOTE: currently grpc endpoint doens't support ssl
+      # NOTE: currently grpc endpoint doesn't support ssl
       - rpc: 'http://localhost:26657'
         api: 'http://localhost:1337'
         grpc: 'localhost:9090' # actully not used in babylon chain

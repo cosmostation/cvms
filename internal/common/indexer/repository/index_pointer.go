@@ -35,7 +35,7 @@ func (repo *MetaRepository) InitializeIndexPointerByChainID(
 		Where("index_name = ?", indexTableName).
 		Exists(ctx)
 	if err != nil {
-		// already initalized index pointer for current chain_info_id
+		// already initialized index pointer for current chain_info_id
 		return errors.Wrap(err, "failed to check index_pointer was already exsited in the meta.index_point")
 	}
 

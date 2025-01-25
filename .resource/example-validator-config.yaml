@@ -20,7 +20,7 @@ chains:
       - 'cosmos1xxx'
       - 'cosmos1xxx'
     nodes:
-      # NOTE: currently grpc endpoint doens't support ssl
+      # NOTE: currently grpc endpoint doesn't support ssl
       - rpc: 'http://localhost:26657'
         api: 'http://localhost:1337'
         grpc: 'localhost:9090'

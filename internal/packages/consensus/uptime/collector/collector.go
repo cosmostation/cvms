@@ -57,7 +57,7 @@ func Start(p common.Packager) error {
 		go loop(exporter, p)
 		return nil
 	}
-	return errors.Errorf("unsupprted protocol type: %s", p.ProtocolType)
+	return errors.Errorf("unsupported protocol type: %s", p.ProtocolType)
 }
 
 func loop(exporter *common.Exporter, p common.Packager) {
