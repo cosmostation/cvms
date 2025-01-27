@@ -34,7 +34,7 @@ func LogFlags() *pflag.FlagSet {
 	flag.String(
 		LogColorDisable,
 		"",
-		"The colored log option. default is false for production level if you want to see debug mode, recommand turn it on true",
+		"The colored log option. default is false for production level if you want to see debug mode, recommend turn it on true",
 	)
 	flag.String(
 		LogLevel,
