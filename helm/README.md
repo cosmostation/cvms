@@ -1,6 +1,6 @@
 # CVMS Helm Chart
 
-This Helm chart is used to deploy the CVMS (Cloud Virtual Management Service) application.
+The Cosmos Validator Monitoring Service (CVMS) is an integrated monitoring system for validators within the Cosmos app chain ecosystem. This helm chart is fot installing cvms on kubernetes.
 
 ## Prerequisites
 
@@ -26,6 +26,8 @@ helm uninstall my-release
 ## Configuration
 
 The following table lists the configurable parameters of the CVMS chart and their default values.
+
+**Note**: You must provide cvmsConfig.monikers and cvmsConfig.chains for monitoring Cosmos validators with cvms, checkout the example in https://github.com/cosmostation/cvms/blob/release/docs/setup.md
 
 | Parameter                | Description                           | Default                        |
 |--------------------------|---------------------------------------|--------------------------------|

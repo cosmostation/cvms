@@ -76,6 +76,15 @@ app.kubernetes.io/metrics-instance: {{ .Release.Name }}-exporter
 {{- end }}
 
 {{/*
+Fail the Helm chart if monikers is an empty list
+*/}}
+{{- define "validateMonikers" -}}
+{{- if eq (len .Values.cvmsConfig.monikers) 0 }}
+{{- fail "The 'monikers' list in 'cvmsConfig' must not be empty. Please provide at least one moniker." }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}
