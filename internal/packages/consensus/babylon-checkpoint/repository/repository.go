@@ -71,7 +71,7 @@ func (repo *CheckpointIndexerRepository) InsertBabylonVoteExtensionList(chainInf
 		return nil
 	}
 
-	// insert miss validators for this block and udpate index pointer in one transaction
+	// insert miss validators for this block and update index pointer in one transaction
 	err := repo.RunInTx(
 		ctx,
 		nil,
