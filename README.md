@@ -36,7 +36,7 @@ In validator mode, CVMS offers an overview that makes it easy to check the essen
 
 In network mode, CVMS provides an overview that allows users to check the status of the network alongside the state of distributed validators concerning elements essential to a specific chain.
 
-- **Example Network Mode Dashbord For Oracle Duty**
+- **Example Network Mode Dashboard For Oracle Duty**
 
 ![network mode dashboard1](.images/network-mode-dashboard1.png)
 
