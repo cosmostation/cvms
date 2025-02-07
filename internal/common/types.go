@@ -1,11 +1,11 @@
 package common
 
 import (
-	"io"
-
 	"github.com/cosmostation/cvms/internal/helper/logger"
-	"github.com/go-resty/resty/v2"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/cosmostation/cvms/internal/common/client"
 )
 
 // TODO: All Methods in VoteIndexer, we need to add here?
@@ -63,9 +63,9 @@ func (a Mode) String() string {
 }
 
 type CommonClient struct {
-	RPCClient  *resty.Client
-	APIClient  *resty.Client
-	GRPCClient *resty.Client
+	RPCClient  client.Client
+	APIClient  client.Client
+	GRPCClient client.Client
 	*logrus.Entry
 }
 type CommonApp struct {
@@ -76,23 +76,9 @@ type CommonApp struct {
 }
 
 func NewCommonApp(p Packager) CommonApp {
-	restyLogger := logrus.New()
-	restyLogger.Out = io.Discard
-	rpcClient := resty.New().
-		SetRetryCount(retryCount).
-		SetRetryWaitTime(retryMaxWaitTimeDuration).
-		SetRetryMaxWaitTime(retryMaxWaitTimeDuration).
-		SetLogger(restyLogger)
-	apiClient := resty.New().
-		SetRetryCount(retryCount).
-		SetRetryWaitTime(retryMaxWaitTimeDuration).
-		SetRetryMaxWaitTime(retryMaxWaitTimeDuration).
-		SetLogger(restyLogger)
-	grpcClient := resty.New().
-		SetRetryCount(retryCount).
-		SetRetryWaitTime(retryMaxWaitTimeDuration).
-		SetRetryMaxWaitTime(retryMaxWaitTimeDuration).
-		SetLogger(restyLogger)
+	rpcClient := client.NewRestyClient().SetLogger(p.Logger)
+	apiClient := client.NewRestyClient().SetLogger(p.Logger)
+	grpcClient := client.NewGrpcClient(Timeout).SetLogger(p.Logger)
 	entry := p.Logger.WithFields(
 		logrus.Fields{
 			logger.FieldKeyChain:   p.ChainName,
@@ -107,42 +93,36 @@ func NewCommonApp(p Packager) CommonApp {
 	}
 }
 
-func (c *CommonClient) SetRPCEndPoint(endpoint string) *resty.Client {
-	return c.RPCClient.SetBaseURL(endpoint)
+func (c *CommonClient) SetRPCEndPoint(endpoint string) client.Client {
+	return c.RPCClient.SetEndpoint(endpoint)
 }
 
 func (c *CommonClient) GetRPCEndPoint() string {
-	return c.RPCClient.BaseURL
+	endpoint, _ := c.RPCClient.GetEndpoint()
+	return endpoint
 }
 
-func (c *CommonClient) SetAPIEndPoint(endpoint string) *resty.Client {
-	return c.APIClient.SetBaseURL(endpoint)
+func (c *CommonClient) SetAPIEndPoint(endpoint string) client.Client {
+	return c.APIClient.SetEndpoint(endpoint)
 }
 
 func (c *CommonClient) GetAPIEndPoint() string {
-	return c.APIClient.BaseURL
+	endpoint, _ := c.APIClient.GetEndpoint()
+	return endpoint
 }
 
-func (c *CommonClient) SetGRPCEndPoint(endpoint string) *resty.Client {
-	return c.GRPCClient.SetBaseURL(endpoint)
+func (c *CommonClient) SetGRPCEndPoint(endpoint string) client.Client {
+	return c.GRPCClient.SetEndpoint(endpoint)
 }
 
 func (c *CommonClient) GetGRPCEndPoint() string {
-	return c.GRPCClient.BaseURL
+	endpoint, _ := c.GRPCClient.GetEndpoint()
+	return endpoint
 }
 
 func NewOptionalClient(entry *logrus.Entry) CommonClient {
-	restyLogger := logrus.New()
-	restyLogger.Out = io.Discard
-	rpcClient := resty.New().
-		SetRetryCount(retryCount).
-		SetRetryWaitTime(retryMaxWaitTimeDuration).
-		SetRetryMaxWaitTime(retryMaxWaitTimeDuration).
-		SetLogger(restyLogger)
-	apiClient := resty.New().
-		SetRetryCount(retryCount).
-		SetRetryWaitTime(retryMaxWaitTimeDuration).
-		SetRetryMaxWaitTime(retryMaxWaitTimeDuration).
-		SetLogger(restyLogger)
-	return CommonClient{rpcClient, apiClient, nil, entry}
+	rpcClient := client.NewRestyClient().SetLogger(entry.Logger)
+	apiClient := client.NewRestyClient().SetLogger(entry.Logger)
+	grpcClient := client.NewGrpcClient(Timeout).SetLogger(entry.Logger)
+	return CommonClient{rpcClient, apiClient, grpcClient, entry}
 }

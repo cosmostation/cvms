@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -26,38 +25,30 @@ func GetAxelarNexusStatus(
 	defer cancel()
 
 	// create requester
-	requester := exporter.APIClient.R().SetContext(ctx)
+	requester := exporter.APIClient
 
 	// get on-chain validators
-	resp, err := requester.Get(types.CommonValidatorQueryPath)
+	resp, err := requester.Get(ctx, types.CommonValidatorQueryPath)
 	if err != nil {
 		exporter.Errorf("api error: %s", err)
 		return types.CommonAxelarNexus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		exporter.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonAxelarNexus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling received validators data
 	var validators types.CommonValidatorsQueryResponse
-	if err := json.Unmarshal(resp.Body(), &validators); err != nil {
+	if err := json.Unmarshal(resp, &validators); err != nil {
 		exporter.Errorf("api error: %s", err)
 		return types.CommonAxelarNexus{}, common.ErrFailedJsonUnmarshal
 	}
 
 	// get on-chain active evm-chains
-	resp, err = requester.Get(CommonEvmChainsQueryPath)
+	resp, err = requester.Get(ctx, CommonEvmChainsQueryPath)
 	if err != nil {
 		exporter.Errorf("api error: %s", err)
 		return types.CommonAxelarNexus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		exporter.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonAxelarNexus{}, common.ErrGotStrangeStatusCode
-	}
 
-	activatedEvmChains, err := CommonEvmChainsParser(resp.Body())
+	activatedEvmChains, err := CommonEvmChainsParser(resp)
 	if err != nil {
 		return types.CommonAxelarNexus{}, err
 	}
@@ -84,7 +75,7 @@ func GetAxelarNexusStatus(
 			defer helper.HandleOutOfNilResponse(exporter.Entry)
 			defer wg.Done()
 
-			resp, err = requester.Get(queryPath)
+			resp, err = requester.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					exporter.Errorln("[panic] passed resp.Time() nil point err")
@@ -95,13 +86,8 @@ func GetAxelarNexusStatus(
 				ch <- helper.Result{Item: nil, Success: false}
 				return
 			}
-			if resp.StatusCode() != http.StatusOK {
-				exporter.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
 
-			maintainers, err := CommonChainMaintainersParser(resp.Body())
+			maintainers, err := CommonChainMaintainersParser(resp)
 			if err != nil {
 				exporter.Errorf("api error: %s", err)
 				ch <- helper.Result{Item: nil, Success: false}

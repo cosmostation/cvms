@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,22 +25,18 @@ func GetOracleStatus(
 	defer cancel()
 
 	// create requester
-	requester := c.APIClient.R().SetContext(ctx)
+	requester := c.APIClient
 
 	// get on-chain validators
-	resp, err := requester.Get(types.CommonValidatorQueryPath)
+	resp, err := requester.Get(ctx, types.CommonValidatorQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonOracleStatus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling received validators data
 	var validators types.CommonValidatorsQueryResponse
-	if err := json.Unmarshal(resp.Body(), &validators); err != nil {
+	if err := json.Unmarshal(resp, &validators); err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedJsonUnmarshal
 	}
@@ -66,7 +61,7 @@ func GetOracleStatus(
 			defer helper.HandleOutOfNilResponse(c.Entry)
 			defer wg.Done()
 
-			resp, err := requester.Get(queryPath)
+			resp, err := requester.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					c.Errorln("[panic] passed resp.Time() nil point err")
@@ -77,13 +72,8 @@ func GetOracleStatus(
 				ch <- helper.Result{Item: nil, Success: false}
 				return
 			}
-			if resp.StatusCode() != http.StatusOK {
-				c.Errorf("api error: [%d] from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
 
-			missCount, err := CommonOracleParser(resp.Body())
+			missCount, err := CommonOracleParser(resp)
 			if err != nil {
 				c.Errorf("api error: %s", err)
 				ch <- helper.Result{Item: nil, Success: false}
@@ -123,17 +113,13 @@ func GetOracleStatus(
 	}
 
 	// get oracle params by each chain
-	resp, err = requester.Get(CommonOracleParamsQueryPath)
+	resp, err = requester.Get(ctx, CommonOracleParamsQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: [%d] %s", resp.StatusCode(), err)
-		return types.CommonOracleStatus{}, common.ErrGotStrangeStatusCode
-	}
 
-	slashWindow, votePeriod, minValidPerWindow, voteWindow, err := CommonOracleParamsParser(resp.Body())
+	slashWindow, votePeriod, minValidPerWindow, voteWindow, err := CommonOracleParamsParser(resp)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedJsonUnmarshal
@@ -146,19 +132,15 @@ func GetOracleStatus(
 	}
 
 	// get latest height by each chain
-	resp, err = requester.Get(types.CommonBlockHeightQueryPath)
+	resp, err = requester.Get(ctx, types.CommonBlockHeightQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: [%d] %s", resp.StatusCode(), err)
-		return types.CommonOracleStatus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling
 	var block types.CommonLatestBlockQueryResponse
-	if err := json.Unmarshal(resp.Body(), &block); err != nil {
+	if err := json.Unmarshal(resp, &block); err != nil {
 		c.Errorf("parser error: %s", err)
 		return types.CommonOracleStatus{}, common.ErrFailedJsonUnmarshal
 	}

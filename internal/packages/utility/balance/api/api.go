@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/cosmostation/cvms/internal/helper"
 	balanceErrors "github.com/cosmostation/cvms/internal/packages/utility/balance/errors"
 	"github.com/cosmostation/cvms/internal/packages/utility/balance/types"
-	"github.com/go-resty/resty/v2"
 )
 
 func GetBalanceStatus(
@@ -29,7 +27,7 @@ func GetBalanceStatus(
 	defer cancel()
 
 	// create requester
-	requester := c.APIClient.R().SetContext(ctx).SetHeader("Content-Type", "application/json")
+	requester := c.APIClient
 
 	// init channel and waitgroup for go-routine
 	ch := make(chan helper.Result)
@@ -40,7 +38,7 @@ func GetBalanceStatus(
 
 	// get evm status by each validator
 	for _, address := range BalanceAddresses {
-		var resp = &resty.Response{}
+		var resp = []byte{}
 		var err error
 
 		address := address
@@ -53,9 +51,9 @@ func GetBalanceStatus(
 			defer wg.Done()
 
 			if CommonBalanceCallMethod == common.GET {
-				resp, err = requester.SetBody(payload).Get(queryPath)
+				resp, err = requester.Get(ctx, queryPath)
 			} else {
-				resp, err = requester.SetBody(payload).Post(queryPath)
+				resp, err = requester.Post(ctx, queryPath, []byte(payload))
 			}
 
 			if err != nil {
@@ -69,13 +67,7 @@ func GetBalanceStatus(
 				return
 			}
 
-			if resp.StatusCode() != http.StatusOK {
-				c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
-
-			remainingBalance, err := CommonBalanceParser(resp.Body(), BalanceDenom)
+			remainingBalance, err := CommonBalanceParser(resp, BalanceDenom)
 			// catch expected error when balance is not found and assuming balance as 0
 			if errors.Is(err, balanceErrors.ErrBalanceNotFound) {
 				c.Warningf("Balance not found for %s and denom %s, assuming balance as 0", address, BalanceDenom)

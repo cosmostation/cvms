@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math"
-	"net/http"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,6 +15,32 @@ import (
 	"github.com/cosmostation/cvms/internal/helper"
 	"github.com/cosmostation/cvms/internal/packages/duty/yoda/types"
 )
+
+func GetBlockHeight(
+	c *common.Exporter,
+	CommonYodaBlockHeightRequestPath string,
+	CommonYodaBlockHeightResponseParser func([]byte) (blockHeight int64, err error),
+) (int64, error) {
+	// init context
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	// create requester
+	requester := c.APIClient
+	// get current blockheight
+	resp, err := requester.Get(ctx, CommonYodaBlockHeightRequestPath)
+	if err != nil {
+		c.Errorf("api error: %s", err)
+		return 0, common.ErrFailedHttpRequest
+	}
+
+	blockHeight, err := CommonYodaBlockHeightResponseParser(resp)
+	if err != nil {
+		c.Errorf("api error: %s", err)
+		return 0, common.ErrFailedJsonUnmarshal
+	}
+	return blockHeight, nil
+}
 
 func GetYodaStatus(
 	c *common.Exporter,
@@ -33,39 +58,31 @@ func GetYodaStatus(
 	defer cancel()
 
 	// create requester
-	requester := c.APIClient.R().SetContext(ctx)
+	requester := c.APIClient
 
 	// get on-chain validators
-	resp, err := requester.Get(types.CommonValidatorQueryPath)
+	resp, err := requester.Get(ctx, types.CommonValidatorQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonYodaStatus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling received validators data
 	var validators types.CommonValidatorsQueryResponse
-	if err := json.Unmarshal(resp.Body(), &validators); err != nil {
+	if err := json.Unmarshal(resp, &validators); err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedJsonUnmarshal
 	}
 
 	// get current request count
-	resp, err = requester.Get(CommonYodaRequestCountsPath)
+	resp, err = requester.Get(ctx, CommonYodaRequestCountsPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonYodaStatus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling received request count data
-	requestCount, err := CommonYodaRequestCountsParser(resp.Body())
+	requestCount, err := CommonYodaRequestCountsParser(resp)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedJsonUnmarshal
@@ -73,17 +90,13 @@ func GetYodaStatus(
 	c.Debugf("Current total request count: %.2f", requestCount)
 
 	// get oracle params by each chain
-	resp, err = requester.Get(CommonYodaParamsPath)
+	resp, err = requester.Get(ctx, CommonYodaParamsPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: [%d] %s", resp.StatusCode(), err)
-		return types.CommonYodaStatus{}, common.ErrGotStrangeStatusCode
-	}
 
-	yodaSlashWindow, err := CommonYodaParamsParser(resp.Body())
+	yodaSlashWindow, err := CommonYodaParamsParser(resp)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonYodaStatus{}, common.ErrFailedJsonUnmarshal
@@ -123,7 +136,7 @@ func GetYodaStatus(
 				defer helper.HandleOutOfNilResponse(c.Entry)
 				defer nerWg.Done()
 
-				resp, err := requester.Get(queryPath)
+				resp, err := requester.Get(ctx, queryPath)
 				if err != nil {
 					if resp == nil {
 						c.Errorln("[panic] passed resp.Time() nil point err")
@@ -134,13 +147,8 @@ func GetYodaStatus(
 					nerCh <- helper.Result{Item: nil, Success: false}
 					return
 				}
-				if resp.StatusCode() != 200 {
-					c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-					nerCh <- helper.Result{Item: nil, Success: false}
-					return
-				}
 
-				requestBlock, validatorsFailedToRespond, status, err := CommonYodaRequestParser(resp.Body())
+				requestBlock, validatorsFailedToRespond, status, err := CommonYodaRequestParser(resp)
 				if err != nil {
 					c.Errorf("api error: %s", err)
 					nerCh <- helper.Result{Item: nil, Success: false}
@@ -208,7 +216,7 @@ func GetYodaStatus(
 			defer helper.HandleOutOfNilResponse(c.Entry)
 			defer wg.Done()
 
-			resp, err := requester.Get(queryPath)
+			resp, err := requester.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					c.Errorln("[panic] passed resp.Time() nil point err")
@@ -219,13 +227,8 @@ func GetYodaStatus(
 				ch <- helper.Result{Item: nil, Success: false}
 				return
 			}
-			if resp.StatusCode() != 200 {
-				c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
 
-			isActive, err := CommonYodaParser(resp.Body())
+			isActive, err := CommonYodaParser(resp)
 			if err != nil {
 				c.Errorf("api error: %s", err)
 				ch <- helper.Result{Item: nil, Success: false}

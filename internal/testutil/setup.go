@@ -9,11 +9,10 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/cosmostation/cvms/internal/common"
+	"github.com/cosmostation/cvms/internal/common/client"
 	"github.com/cosmostation/cvms/internal/helper/logger"
-	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -86,21 +85,9 @@ func GetTestExporter() *common.Exporter {
 	l := logger.GetTestLogger()
 	restyLogger := logrus.New()
 	restyLogger.Out = io.Discard
-	RPCClient := resty.New().
-		SetRetryCount(10).
-		SetRetryWaitTime(10 * time.Millisecond).
-		SetRetryMaxWaitTime(3 * time.Second).
-		SetLogger(restyLogger)
-	APIClient := resty.New().
-		SetRetryCount(10).
-		SetRetryWaitTime(10 * time.Millisecond).
-		SetRetryMaxWaitTime(3 * time.Second).
-		SetLogger(restyLogger)
-	GRPCClient := resty.New().
-		SetRetryCount(10).
-		SetRetryWaitTime(10 * time.Millisecond).
-		SetRetryMaxWaitTime(3 * time.Second).
-		SetLogger(restyLogger)
+	RPCClient := client.NewRestyClient().SetLogger(restyLogger)
+	APIClient := client.NewRestyClient().SetLogger(restyLogger)
+	GRPCClient := client.NewGrpcClient(common.Timeout).SetLogger(restyLogger)
 	entry := l.WithField("mode", "test")
 	monikers := []string{"Cosmostation"}
 	commonClient := common.CommonClient{

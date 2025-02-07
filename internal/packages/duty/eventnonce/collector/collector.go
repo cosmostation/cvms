@@ -30,8 +30,13 @@ func Start(p common.Packager) error {
 	if ok := helper.Contains(types.SupportedChains, p.ChainName); ok {
 		for _, baseURL := range p.GRPCs {
 			client := common.NewExporter(p)
-			client.SetGRPCEndPoint(baseURL)
-			go loop(client, p)
+			if client.SetGRPCEndPoint(baseURL) == nil {
+				client.Warnf("Failed to establish gRPC connection with: %s", baseURL)
+				continue
+			} else {
+				client.Debugf("Endpoint: %s", client.GetGRPCEndPoint())
+				go loop(client, p)
+			}
 			break
 		}
 		return nil

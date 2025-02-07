@@ -2,12 +2,9 @@ package api
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/packages/health/block/types"
-
-	"github.com/go-resty/resty/v2"
 )
 
 func GetBlockStatus(
@@ -22,26 +19,21 @@ func GetBlockStatus(
 	defer cancel()
 
 	// create requester
-	var requester *resty.Request
+	// var requester *resty.Request
 	if CommonBlockCallClient == common.RPC {
-		requester = c.RPCClient.R().SetContext(ctx)
+		// requester = c.RPCClient.R().SetContext(ctx)
 	} else {
-		requester = c.APIClient.R().SetContext(ctx)
+		// requester = c.APIClient.R().SetContext(ctx)
 	}
 
-	var resp = &resty.Response{}
+	// var resp = &resty.Response{}
+	var resp []byte
 	var err error
 
 	if CommonBlockCallMethod == common.GET {
-		resp, err = requester.
-			SetHeader("Content-Type", "application/json").
-			SetBody(CommonBlockPayload).
-			Get(CommonBlockQueryPath)
+		resp, err = c.RPCClient.Get(ctx, CommonBlockQueryPath)
 	} else if CommonBlockCallMethod == common.POST {
-		resp, err = requester.
-			SetHeader("Content-Type", "application/json").
-			SetBody(CommonBlockPayload).
-			Post(CommonBlockQueryPath)
+		resp, err = c.RPCClient.Post(ctx, CommonBlockQueryPath, []byte(CommonBlockPayload))
 	} else {
 		return types.CommonBlock{}, common.ErrUnSupportedMethod
 	}
@@ -51,14 +43,10 @@ func GetBlockStatus(
 		return types.CommonBlock{}, common.ErrFailedHttpRequest
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("request error: [%d] %s", resp.StatusCode(), err)
-		return types.CommonBlock{}, common.ErrGotStrangeStatusCode
-	}
-
-	blockHeight, blockTimeStamp, err := CommonBlockParser(resp.Body())
+	blockHeight, blockTimeStamp, err := CommonBlockParser(resp)
 	if err != nil {
 		c.Errorf("parser error: %s", err)
+		c.Debugf("received response: %s", string(resp))
 		return types.CommonBlock{}, common.ErrFailedJsonUnmarshal
 	}
 

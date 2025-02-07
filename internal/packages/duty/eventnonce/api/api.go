@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -25,22 +24,18 @@ func GetEventNonceStatus(
 	defer cancel()
 
 	// create requester
-	requester := c.APIClient.R().SetContext(ctx)
+	requester := c.APIClient
 
 	// get on-chain validators
-	resp, err := requester.Get(types.CommonValidatorQueryPath)
+	resp, err := requester.Get(ctx, types.CommonValidatorQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonEventNonceStatus{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonEventNonceStatus{}, common.ErrGotStrangeStatusCode
-	}
 
 	// json unmarsharling received validators data
 	var validators types.CommonValidatorsQueryResponse
-	if err := json.Unmarshal(resp.Body(), &validators); err != nil {
+	if err := json.Unmarshal(resp, &validators); err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonEventNonceStatus{}, common.ErrFailedJsonUnmarshal
 	}
@@ -65,7 +60,7 @@ func GetEventNonceStatus(
 			defer helper.HandleOutOfNilResponse(c.Entry)
 			defer wg.Done()
 
-			resp, err := requester.Get(queryPath)
+			resp, err := requester.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					c.Errorln("[panic] passed resp.Time() nil point err")
@@ -77,13 +72,7 @@ func GetEventNonceStatus(
 				return
 			}
 
-			if resp.StatusCode() != http.StatusOK {
-				c.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
-
-			orchestratorAddress, err := CommonOrchestratorParser(resp.Body())
+			orchestratorAddress, err := CommonOrchestratorParser(resp)
 			if err != nil {
 				c.Errorf("api error: %s", err)
 				ch <- helper.Result{Success: false, Item: nil}
@@ -148,7 +137,7 @@ func GetEventNonceStatus(
 			defer helper.HandleOutOfNilResponse(c.Entry)
 			defer wg.Done()
 
-			resp, err := requester.Get(queryPath)
+			resp, err := requester.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					c.Errorln("[panic] passed resp.Time() nil point err")
@@ -159,13 +148,8 @@ func GetEventNonceStatus(
 				ch <- helper.Result{Item: nil, Success: false}
 				return
 			}
-			if resp.StatusCode() != http.StatusOK {
-				c.Errorf("api error: %d code from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
 
-			eventNonce, err := CommonEventNonceParser(resp.Body())
+			eventNonce, err := CommonEventNonceParser(resp)
 			if err != nil {
 				c.Errorf("api error: %s", err)
 				ch <- helper.Result{Success: false, Item: nil}

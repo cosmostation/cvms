@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/common/api"
@@ -19,18 +18,14 @@ func GetUpgradeStatus(
 	ctx, cancel := context.WithTimeout(ctx, common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-	resp, err := requester.Get(CommonUpgradeQueryPath)
+	requester := c.APIClient
+	resp, err := requester.Get(ctx, CommonUpgradeQueryPath)
 	if err != nil {
 		c.Errorf("api error: %s", err)
 		return types.CommonUpgrade{}, common.ErrFailedHttpRequest
 	}
-	if resp.StatusCode() != http.StatusOK {
-		c.Errorf("api error: status code is %d from %s", resp.StatusCode(), resp.Request.URL)
-		return types.CommonUpgrade{}, common.ErrGotStrangeStatusCode
-	}
 
-	upgradeHeight, upgradeName, err := CommonUpgradeParser(resp.Body())
+	upgradeHeight, upgradeName, err := CommonUpgradeParser(resp)
 	if err != nil {
 		c.Errorf("parser error: %s", err)
 		return types.CommonUpgrade{}, common.ErrFailedJsonUnmarshal

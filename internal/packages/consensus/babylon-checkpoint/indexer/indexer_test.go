@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -91,14 +90,14 @@ func TestSyncEpoch(t *testing.T) {
 	idx, err := NewCheckpointIndexer(p)
 	assert.NoError(t, err)
 
-	requester := idx.APIClient.R().SetContext(context.Background())
-	resp, err := requester.Get("/babylon/epoching/v1/current_epoch")
-	assert.NoErrorf(t, err, "error from : %s", resp.Request.URL)
-	assert.NotSame(t, http.StatusOK, resp.StatusCode())
+	ctx := context.Background()
+	uri := "/babylon/epoching/v1/current_epoch"
+	resp, err := idx.APIClient.Get(ctx, uri)
+	assert.NoErrorf(t, err, "error from : %s", uri)
 
 	// pasrse
 	var currentEpochResponse CurrentEpochResponse
-	err = json.Unmarshal(resp.Body(), &currentEpochResponse)
+	err = json.Unmarshal(resp, &currentEpochResponse)
 	assert.NoError(t, err)
 
 	currentEpoch, err := strconv.Atoi(currentEpochResponse.CurrentEpoch)
@@ -111,12 +110,12 @@ func TestSyncEpoch(t *testing.T) {
 			continue
 		}
 		path := fmt.Sprintf("/babylon/epoching/v1/epochs/%d", epoch)
-		resp, err := requester.Get(path)
+		resp, err := idx.APIClient.Get(ctx, path)
 		assert.NoError(t, err)
 
 		// pasre type
 		EpochsResponse := EpochResponse{}
-		err = json.Unmarshal(resp.Body(), &EpochsResponse)
+		err = json.Unmarshal(resp, &EpochsResponse)
 		assert.NoError(t, err)
 
 		// parse
@@ -127,7 +126,7 @@ func TestSyncEpoch(t *testing.T) {
 
 		path = fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d?pagination.limit=1", firstBlockOfEpoch)
 		// get first tx in the first block in the each epoch
-		resp, err = requester.Get(path)
+		resp, err = idx.APIClient.Get(ctx, path)
 		assert.NoError(t, err)
 
 		// parse
@@ -135,7 +134,7 @@ func TestSyncEpoch(t *testing.T) {
 
 		// pasre type
 		txsReponse := BlockTxsResponse{}
-		err = json.Unmarshal(resp.Body(), &txsReponse)
+		err = json.Unmarshal(resp, &txsReponse)
 		assert.NoError(t, err)
 
 		for _, tx := range txsReponse.Txs {

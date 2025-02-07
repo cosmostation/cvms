@@ -1,15 +1,5 @@
 package common
 
-import (
-	"time"
-)
-
-const (
-	retryCount               = 10
-	retryWaitTimeDuration    = 10 * time.Millisecond
-	retryMaxWaitTimeDuration = 3 * time.Second
-)
-
 type Exporter struct {
 	CommonApp
 	Monikers  []string

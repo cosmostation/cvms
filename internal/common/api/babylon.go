@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -19,16 +18,12 @@ func GetActiveFinalityProviderByHeight(c common.CommonClient, height int64) ([]t
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-	resp, err := requester.Get(types.BabylonFinalityProvidersQueryPath(height))
+	resp, err := c.APIClient.Get(ctx, types.BabylonFinalityProvidersQueryPath(height))
 	if err != nil {
-		return nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
+		return nil, errors.Errorf("rpc call is failed from %s: %s", types.BabylonFinalityProvidersQueryPath(height), err)
 	}
 
-	fps, err := parser.ParseFinalityProviders(resp.Body())
+	fps, err := parser.ParseFinalityProviders(resp)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -40,16 +35,12 @@ func GetFinalityVotesByHeight(c common.CommonClient, height int64) ([]string, er
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-	resp, err := requester.Get(types.BabylonFinalityVotesQueryPath(height))
+	resp, err := c.APIClient.Get(ctx, types.BabylonFinalityVotesQueryPath(height))
 	if err != nil {
-		return nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
+		return nil, errors.Errorf("rpc call is failed from %s: %s", types.BabylonFinalityVotesQueryPath(height), err)
 	}
 
-	votes, err := parser.ParseFinalityProviderVotings(resp.Body())
+	votes, err := parser.ParseFinalityProviderVotings(resp)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -61,21 +52,16 @@ func GetBabylonFinalityProviderInfos(c common.CommonClient) ([]types.FinalityPro
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
 	fpInfoList := make([]types.FinalityProviderInfo, 0)
 	maxCnt := 10
 	key := ""
 	for cnt := 0; cnt <= maxCnt; cnt++ {
-		resp, err := requester.Get(types.BabylonFinalityProviderInfosQueryPath(key))
+		resp, err := c.APIClient.Get(ctx, types.BabylonFinalityProviderInfosQueryPath(key))
 		if err != nil {
-			return nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+			return nil, errors.Errorf("rpc call is failed from %s: %s", types.BabylonFinalityProviderInfosQueryPath(key), err)
 		}
 
-		if resp.StatusCode() != http.StatusOK {
-			return nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
-		}
-
-		fpInfos, err := parser.ParseFinalityProviderInfos(resp.Body())
+		fpInfos, err := parser.ParseFinalityProviderInfos(resp)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -99,8 +85,6 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-
 	ch := make(chan helper.Result)
 	var wg sync.WaitGroup
 	validatorResult := make([]fputypes.FinalityProviderUptimeStatus, 0)
@@ -114,7 +98,7 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 			defer helper.HandleOutOfNilResponse(c.Entry)
 			defer wg.Done()
 
-			resp, err := requester.Get(queryPath)
+			resp, err := c.APIClient.Get(ctx, queryPath)
 			if err != nil {
 				if resp == nil {
 					c.Errorln("unexpected nil response")
@@ -125,13 +109,8 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 				ch <- helper.Result{Item: nil, Success: false}
 				return
 			}
-			if resp.StatusCode() != http.StatusOK {
-				c.Errorf("unexpected status from node: %d from %s", resp.StatusCode(), resp.Request.URL)
-				ch <- helper.Result{Item: nil, Success: false}
-				return
-			}
 
-			missedBlockCounter, err := parser.ParserFinalityProviderSigningInfo(resp.Body())
+			missedBlockCounter, err := parser.ParserFinalityProviderSigningInfo(resp)
 			if err != nil {
 				c.Errorf("unexpected err: %s", err)
 				ch <- helper.Result{Item: nil, Success: false}
@@ -176,17 +155,12 @@ func GetBabylonFinalityProviderParams(c common.CommonClient) (float64, float64, 
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-	resp, err := requester.Get(types.BabylonFinalityParamsQueryPath)
+	resp, err := c.APIClient.Get(ctx, types.BabylonFinalityParamsQueryPath)
 	if err != nil {
-		return 0, 0, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+		return 0, 0, errors.Errorf("rpc call is failed from %s: %s", types.BabylonFinalityParamsQueryPath, err)
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		return 0, 0, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
-	}
-
-	signedBlocksWindow, minSignedPerWindow, err := parser.ParserFinalityParams(resp.Body())
+	signedBlocksWindow, minSignedPerWindow, err := parser.ParserFinalityParams(resp)
 	if err != nil {
 		return 0, 0, errors.WithStack(err)
 	}
@@ -198,17 +172,14 @@ func GetBabylonBTCLightClientParams(c common.CommonClient) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
 	defer cancel()
 
-	requester := c.APIClient.R().SetContext(ctx)
-	resp, err := requester.Get(types.BabylonBTCLightClientParamsQueryPath)
+	requester := c.APIClient
+	resp, err := requester.Get(ctx, types.BabylonBTCLightClientParamsQueryPath)
 	if err != nil {
-		return nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+		endpoint, _ := requester.GetEndpoint()
+		return nil, errors.Errorf("rpc call is failed from %s: %s", endpoint, err)
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		return nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
-	}
-
-	allowList, err := parser.ParserBTCLightClientParams(resp.Body())
+	allowList, err := parser.ParserBTCLightClientParams(resp)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
