@@ -88,7 +88,7 @@ type BTCInsertEvent struct {
 	BTCHeaders      []BTCHeader
 }
 
-// ToStringSlice converts BTCHeaders to a slice of strings
+// ToHeadersStringSlice converts BTCHeaders to a slice of strings
 func (e BTCInsertEvent) ToHeadersStringSlice() string {
 	var headers []string
 	for _, header := range e.BTCHeaders {
