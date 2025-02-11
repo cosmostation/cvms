@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -307,4 +308,38 @@ type Attribute struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 	Index bool   `json:"index"`
+}
+
+var (
+	CosmosLimitedBlockTxsQueryPath = func(blockHeight int64) string {
+		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d?pagination.limit=1", blockHeight)
+	}
+
+	CosmosBlockTxsQueryPath = func(blockHeight int64) string {
+		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d", blockHeight)
+	}
+)
+
+type CosmosBlockAndTxsResponse struct {
+	Txs   []CosmosTx `json:"txs"`
+	Block struct {
+		Header struct {
+			ChainID         string    `json:"chain_id"`
+			Height          string    `json:"height"`
+			Time            time.Time `json:"time"`
+			ProposerAddress string    `json:"proposer_address"`
+		} `json:"header"`
+	} `json:"block"`
+	Pagination struct {
+		NextKey string `json:"next_key"`
+		Total   string `json:"total"`
+	} `json:"pagination"`
+}
+
+type CosmosTx struct {
+	Body struct {
+		Messages []json.RawMessage `json:"messages"`
+	} `json:"body"`
+	AuthInfo   interface{} `json:"-"`
+	Signatures []string    `json:"-"`
 }

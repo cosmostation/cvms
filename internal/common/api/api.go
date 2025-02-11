@@ -319,3 +319,40 @@ func GetBlockResults(c common.CommonClient, height int64) (
 
 	return txsEvents, blockEvents, nil
 }
+
+// query block and txs data by using cosmos api endpoint
+func GetBlockAndTxs(c common.CommonClient, height int64) (
+	int64,
+	time.Time,
+	[]types.CosmosTx,
+	error,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	requester := c.APIClient.R().SetContext(ctx)
+	resp, err := requester.Get(types.CosmosBlockTxsQueryPath(height))
+	if err != nil {
+		return 0, time.Time{}, nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return 0, time.Time{}, nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
+	}
+
+	var result types.CosmosBlockAndTxsResponse
+	err = json.Unmarshal(resp.Body(), &result)
+	if err != nil {
+		return 0, time.Time{}, nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	if result.Pagination.NextKey != "" {
+		return 0, time.Time{}, nil, errors.New("pagination is not supported yet")
+	}
+
+	blockHeight, err := strconv.ParseInt(result.Block.Header.Height, 10, 64)
+	if err != nil {
+		return 0, time.Time{}, nil, errors.Wrap(err, "failed to parse block height")
+	}
+
+	return blockHeight, result.Block.Header.Time, result.Txs, nil
+}
