@@ -20,6 +20,7 @@ type ValidatorUptimeStatus struct {
 	ValidatorConsensusAddress string  `json:"validator_consensus_addreess"`
 	MissedBlockCounter        float64 `json:"missed_block_counter"`
 	IsTomstoned               float64
+	ProposerPriority          float64 `json:"proposer_priority"`
 	// Only Consumer Chain
 	ConsumerConsensusAddress string `json:"consumer_consensus_address"`
 }

@@ -8,4 +8,7 @@ var (
 type CommonBlock struct {
 	LastBlockHeight    float64
 	LastBlockTimeStamp float64
+	ProposerAddress    string
 }
+
+type BlockParser func(resp []byte) (CommonBlock, error)

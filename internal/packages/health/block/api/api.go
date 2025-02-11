@@ -13,8 +13,10 @@ import (
 func GetBlockStatus(
 	c *common.Exporter,
 	CommonBlockCallClient common.ClientType,
-	CommonBlockCallMethod common.Method, CommonBlockQueryPath string, CommonBlockPayload string,
-	CommonBlockParser func([]byte) (float64, float64, error),
+	CommonBlockCallMethod common.Method,
+	CommonBlockQueryPath string,
+	CommonBlockPayload string,
+	CommonBlockParser types.BlockParser,
 ) (types.CommonBlock, error) {
 	// init context
 	ctx := context.Background()
@@ -56,15 +58,12 @@ func GetBlockStatus(
 		return types.CommonBlock{}, common.ErrGotStrangeStatusCode
 	}
 
-	blockHeight, blockTimeStamp, err := CommonBlockParser(resp.Body())
+	block, err := CommonBlockParser(resp.Body())
 	if err != nil {
 		c.Errorf("parser error: %s", err)
 		return types.CommonBlock{}, common.ErrFailedJsonUnmarshal
 	}
 
-	c.Debugf("got block timestamp: %d", int(blockTimeStamp))
-	return types.CommonBlock{
-		LastBlockHeight:    blockHeight,
-		LastBlockTimeStamp: blockTimeStamp,
-	}, nil
+	c.Debugf("got block timestamp: %d", int(block.LastBlockTimeStamp))
+	return block, nil
 }
