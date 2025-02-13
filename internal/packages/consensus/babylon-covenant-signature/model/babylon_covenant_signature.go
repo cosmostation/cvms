@@ -17,8 +17,23 @@ type BabylonCovenantSignature struct {
 	Timestamp        time.Time `bun:"timestamp,notnull"`
 }
 
+type BabylonBtcDelegation struct {
+	bun.BaseModel    `bun:"table:babylon_btc_delegation"`
+	ID               int64     `bun:"id,pk,autoincrement"`
+	ChainInfoID      int64     `bun:"chain_info_id,pk,notnull"`
+	Height           int64     `bun:"height,notnull"`
+	BTCStakingTxHash string    `bun:"btc_staking_tx_hash,notnull"`
+	Timestamp        time.Time `bun:"timestamp,notnull"`
+}
+
 func (model BabylonCovenantSignature) String() string {
 	return fmt.Sprintf("BabylonCovenantSignature(ID=%d, ChainInfoID=%d, Height=%d, CovenantBtcPkID=%d, BTCStakingTxHash=%s, Timestamp=%s)",
 		model.ID, model.ChainInfoID, model.Height, model.CovenantBtcPkID, model.BTCStakingTxHash, model.Timestamp.Format(time.RFC3339),
+	)
+}
+
+func (model BabylonBtcDelegation) String() string {
+	return fmt.Sprintf("BabylonBtcDelegation(ID=%d, ChainInfoID=%d, Height=%d, BTCStakingTxHash=%s, Timestamp=%s)",
+		model.ID, model.ChainInfoID, model.Height, model.BTCStakingTxHash, model.Timestamp.Format(time.RFC3339),
 	)
 }

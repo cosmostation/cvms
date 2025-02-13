@@ -315,8 +315,11 @@ var (
 		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d?pagination.limit=1", blockHeight)
 	}
 
+	// This query suffers from a bug in the cosmos-sdk
+	// that prevents the ‘next_key’ from being checked.
+	// Therefore, it tries to lookup the entire tx at once using pagination.limit=1000.
 	CosmosBlockTxsQueryPath = func(blockHeight int64) string {
-		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d", blockHeight)
+		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d?pagination.limit=1000", blockHeight)
 	}
 )
 
@@ -342,4 +345,10 @@ type CosmosTx struct {
 	} `json:"body"`
 	AuthInfo   interface{} `json:"-"`
 	Signatures []string    `json:"-"`
+}
+
+type CosmosErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Details []any  `json:"details"`
 }

@@ -17,6 +17,7 @@ const (
 	LatestBlockHeightMetricName          = "latest_block_height"
 	RecentMissCounterMetricName          = "recent_miss_counter"
 	CovenantSigCountMetricName           = "covenant_sigs_count"
+	BtcDelegationCountTotalMetricName    = "btc_delegation_count_total"
 )
 
 type Indexer struct {
@@ -36,6 +37,7 @@ type Indexer struct {
 	Factory            promauto.Factory
 	MetricsMap         map[string]prometheus.Gauge
 	MetricsVecMap      map[string]*prometheus.GaugeVec
+	MetricsCountMap    map[string]prometheus.Counter
 	MetricsCountVecMap map[string]*prometheus.CounterVec
 	RootLabels         prometheus.Labels
 	PackageLabels      prometheus.Labels

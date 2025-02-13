@@ -1,16 +1,12 @@
 package indexer
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
 	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/common/api"
 	"github.com/cosmostation/cvms/internal/helper/logger"
@@ -21,7 +17,7 @@ import (
 )
 
 var (
-	syncStartHeight int64 = 245219
+	syncStartHeight int64 = 278639
 
 	p = common.Packager{
 		ChainName:    "babylon",
@@ -35,24 +31,16 @@ var (
 	}
 )
 
-func TestLogic2(t *testing.T) {
-	str := "AgAAAAEV+HqXcrYPtvInS3ygpwH2bK/I4JhHdNMBbmh6ht3sTgAAAAAA/////wJQwwAAAAAAACJRIHitg+6DT820A8/DE8LWeEN6BFZiPpMkj4URXmap+uAOfXYOAAAAAAAiUSAtyerAPfEAfA5g4Vn/341CdaYRMelp7cwDvkKfNnMFDgAAAAA="
-	t.Logf("raw base64: %s", str)
+func TestEmptyTxsBlock(t *testing.T) {
+	app := common.NewCommonApp(p)
+	app.SetAPIEndPoint(p.Endpoints.APIs[0])
+	app.SetRPCEndPoint(p.Endpoints.RPCs[0])
 
-	hexBz, err := base64.StdEncoding.DecodeString(str)
+	testHeight := int64(17293874)
+	height, timestamp, txs, err := api.GetBlockAndTxs(app.CommonClient, testHeight)
 	assert.NoError(t, err)
-	t.Logf("raw hex: %X", hexBz)
 
-	// Deserialize transaction
-	var tx wire.MsgTx
-	err = tx.Deserialize(bytes.NewReader(hexBz))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Print decoded transaction
-	fmt.Printf("txId: %s\n", tx.TxHash().String())
-
+	fmt.Println(height, timestamp, txs)
 }
 
 func TestLogic(t *testing.T) {
@@ -76,13 +64,16 @@ func TestLogic(t *testing.T) {
 				err := json.Unmarshal(rawType, &typeValue)
 				assert.NoError(t, err)
 
-				covenantSigs, err := ParseDynamicMessage(message, typeValue)
+				parsedMsg, err := ParseDynamicMessage(message, typeValue)
 				if errors.Is(err, common.ErrUnSupportedMessageType) {
 					continue
 				} else {
 					assert.NoError(t, err)
 				}
-				newMsgCovenantSigs = append(newMsgCovenantSigs, covenantSigs)
+
+				covenantSig := parsedMsg.(MsgCovenantSignature)
+
+				newMsgCovenantSigs = append(newMsgCovenantSigs, covenantSig)
 			}
 		}
 	}
@@ -119,7 +110,7 @@ func TestLogic(t *testing.T) {
 func TestStart(t *testing.T) {
 	waitingDuration := 60 * time.Second
 	// Step 1: Set up the database
-	tempDBName := "temp"
+	tempDBName := "cvms"
 	indexerDB, err := common.NewTestLoaclIndexerDB(tempDBName)
 	assert.NoError(t, err)
 
@@ -165,7 +156,7 @@ func TestBatchSync(t *testing.T) {
 	err = idx.InitChainInfoID()
 	assert.NoError(t, err)
 
-	err = idx.repo.InitPartitionTablesByChainInfoID(repository.IndexName, idx.ChainID, 100)
+	err = idx.csRepo.InitPartitionTablesByChainInfoID(repository.IndexName, idx.ChainID, 100)
 	assert.NoError(t, err)
 
 	// Step 4: Wait for the goroutine to finish

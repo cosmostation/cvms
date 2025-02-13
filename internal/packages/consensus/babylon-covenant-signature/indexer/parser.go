@@ -1,12 +1,18 @@
 package indexer
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
-	"time"
+
+	"github.com/btcsuite/btcd/wire"
+
+	"bytes"
+	"encoding/base64"
+
+	"github.com/cosmostation/cvms/internal/common/types"
 
 	"github.com/cosmostation/cvms/internal/common"
 )
@@ -30,6 +36,31 @@ func DecodeEscapedJSONString(value string) (string, error) {
 	return decodedString, nil
 }
 
+func DecodeBtcStakingTx(encodingString string) (string, error) {
+	decodedBytes, err := base64.StdEncoding.DecodeString(encodingString)
+	if err != nil {
+		return "", err
+	}
+
+	hexStr := hex.EncodeToString(decodedBytes)
+
+	// Convert hex string to bytes
+	rawBytes, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return "", err
+	}
+
+	// Deserialize transaction
+	var tx wire.MsgTx
+
+	err = tx.Deserialize(bytes.NewReader(rawBytes))
+	if err != nil {
+		return "", err
+	}
+
+	return tx.TxHash().String(), nil
+}
+
 // {
 // 	"@type": "/babylon.btcstaking.v1.MsgAddCovenantSigs",
 // 	"signer": "bbn15ewur0qq3fgryz6sappwaqtqk9c45737hznule",
@@ -44,64 +75,66 @@ func DecodeEscapedJSONString(value string) (string, error) {
 // 	]
 //   }
 
-func ExtractBabylonCovenantSignature(resp []byte) (
-	/* block height */ int64,
-	/* block timestamp */ time.Time,
+func ExtractBabylonCovenantSignature(txs []types.CosmosTx) (
+	// /* block height */ int64,
+	// /* block timestamp */ time.Time,
 	[]MsgCovenantSignature,
+	[]MsgCreateBtcDelegation,
 	error,
 ) {
-
-	result := BlockTxsResponse{}
-	err := json.Unmarshal(resp, &result)
-	if err != nil {
-		return 0, time.Time{}, nil, err
-	}
-
-	blockHeight, err := strconv.ParseInt(result.Block.Header.Height, 10, 64)
-	if err != nil {
-		return 0, time.Time{}, nil, err
-	}
-
 	newMsgCovenantSigs := make([]MsgCovenantSignature, 0)
+	newMsgCreateBtcDelegations := make([]MsgCreateBtcDelegation, 0)
 
-	for _, tx := range result.Txs {
+	for _, tx := range txs {
 		for _, message := range tx.Body.Messages {
 			var preResult map[string]json.RawMessage
 			if err := json.Unmarshal(message, &preResult); err != nil {
-				return 0, time.Time{}, nil, err
+				return nil, nil, err
 			}
 
 			if rawType, ok := preResult["@type"]; ok {
 				var typeValue string
 				if err := json.Unmarshal(rawType, &typeValue); err != nil {
-					return 0, time.Time{}, nil, err
+					return nil, nil, err
 				}
 
-				covenantSigs, err := ParseDynamicMessage(message, typeValue)
+				parsedMsg, err := ParseDynamicMessage(message, typeValue)
 				if err != nil {
 					if errors.Is(err, common.ErrUnSupportedMessageType) {
 						continue
 					} else {
-						return 0, time.Time{}, nil, err
+						return nil, nil, err
 					}
 				}
 
-				newMsgCovenantSigs = append(newMsgCovenantSigs, covenantSigs)
+				// type check
+				if msg, ok := parsedMsg.(MsgCovenantSignature); ok {
+					newMsgCovenantSigs = append(newMsgCovenantSigs, msg)
+				} else if msg, ok := parsedMsg.(MsgCreateBtcDelegation); ok {
+					newMsgCreateBtcDelegations = append(newMsgCreateBtcDelegations, msg)
+				}
 			}
 		}
 	}
 
-	return blockHeight, result.Block.Header.Time, newMsgCovenantSigs, nil
+	return newMsgCovenantSigs, newMsgCreateBtcDelegations, nil
 }
 
 // parseDynamicMessage dynamically parses the message based on its type.
-func ParseDynamicMessage(message json.RawMessage, typeURL string) (MsgCovenantSignature, error) {
+func ParseDynamicMessage(message json.RawMessage, typeURL string) (interface{}, error) {
 	switch typeURL {
 	case BabylonCovenantSignatureMessageType:
 		var msg MsgCovenantSignature
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("Failed to parse MsgCovenantSignature: %v", err)
 			return MsgCovenantSignature{}, err
+		}
+		return msg, nil
+	case BabylonCreateBtcDelegationMessageType:
+		var msg MsgCreateBtcDelegation
+		if err := json.Unmarshal(message, &msg); err != nil {
+			log.Printf("Failed to parse MsgCreateBtcDelegation: %v", err)
+			return MsgCreateBtcDelegation{}, err
 		}
 		return msg, nil
 	default:

@@ -120,7 +120,7 @@ func NewTestLoaclIndexerDB(tempDBName string) (*IndexerDB, error) {
 	out, _ := cmd.Output()
 	rootPath := strings.Split(string(out), "/go.mod")[0]
 	dirPath := filepath.Join(rootPath, "./docker/postgres/schema")
-	dsn := "postgres://jeongseup:@localhost:5432/postgres?sslmode=disable"
+	dsn := "postgres://cvms:mysecretpassword@localhost:5432/postgres?sslmode=disable"
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	err := sqldb.Ping()
 	if err != nil {
@@ -141,7 +141,7 @@ func NewTestLoaclIndexerDB(tempDBName string) (*IndexerDB, error) {
 	}
 
 	// Connect to the temporary database
-	dsn = fmt.Sprintf("postgres://jeongseup:@localhost:5432/%s?sslmode=disable", tempDBName)
+	dsn = fmt.Sprintf("postgres://cvms:mysecretpassword@localhost:5432/%s?sslmode=disable", tempDBName)
 	sqldb = sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	sqldb.Exec(fmt.Sprintf("DROP DATABASE %s;", tempDBName)) // Clean up
 

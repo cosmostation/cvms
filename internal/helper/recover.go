@@ -7,7 +7,6 @@ import (
 type Result struct {
 	Item    interface{}
 	Success bool
-	Index   int64
 }
 
 func HandleOutOfNilResponse(logger *logrus.Entry) {

@@ -21,7 +21,7 @@ type CovenantSignatureRepository struct {
 	indexerrepo.IMetaRepository
 }
 
-func NewRepository(indexerDB common.IndexerDB, sqlTimeout time.Duration) CovenantSignatureRepository {
+func NewCovenantSigRepository(indexerDB common.IndexerDB, sqlTimeout time.Duration) CovenantSignatureRepository {
 	// Instantiate the meta repository
 	metarepo := indexerrepo.NewMetaRepository(indexerDB)
 

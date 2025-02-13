@@ -9,6 +9,7 @@ import (
 	"github.com/cosmostation/cvms/internal/common/indexer/model"
 	indexertypes "github.com/cosmostation/cvms/internal/common/indexer/types"
 	"github.com/cosmostation/cvms/internal/helper"
+
 	"github.com/cosmostation/cvms/internal/helper/db"
 	"github.com/cosmostation/cvms/internal/helper/healthcheck"
 	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/repository"
@@ -19,12 +20,13 @@ var subsystem = "babylon_committee"
 
 type CovenantSignatureIndexer struct {
 	*common.Indexer
-	repo                 repository.CovenantSignatureRepository
+	csRepo               repository.CovenantSignatureRepository
+	btcDelRepo           repository.BtcDelegationRepository
 	earliestBlockHeight  int64
 	covenantCommitteeMap map[string]int64
 }
 
-// var _ common.IIndexer = (*CovenantSignatureIndexer)(nil)
+var _ common.IIndexer = (*CovenantSignatureIndexer)(nil)
 
 func NewCovenantSignatureIndexer(p common.Packager) (*CovenantSignatureIndexer, error) {
 	status := helper.GetOnChainStatus(p.RPCs, p.ProtocolType)
@@ -34,9 +36,10 @@ func NewCovenantSignatureIndexer(p common.Packager) (*CovenantSignatureIndexer, 
 
 	indexer := common.NewIndexer(p, p.Package, status.ChainID)
 
-	repo := repository.NewRepository(*p.IndexerDB, indexertypes.SQLQueryMaxDuration)
+	csRepo := repository.NewCovenantSigRepository(*p.IndexerDB, indexertypes.SQLQueryMaxDuration)
+	btcDelRepo := repository.NewBtcDelegationRepository(*p.IndexerDB, indexertypes.SQLQueryMaxDuration)
 	indexer.Lh = indexertypes.LatestHeightCache{LatestHeight: status.BlockHeight}
-	return &CovenantSignatureIndexer{indexer, repo, status.EarliestBlockHeight, make(map[string]int64, 0)}, nil
+	return &CovenantSignatureIndexer{indexer, csRepo, btcDelRepo, status.EarliestBlockHeight, make(map[string]int64, 0)}, nil
 }
 
 func (idx *CovenantSignatureIndexer) Start() error {
@@ -45,24 +48,25 @@ func (idx *CovenantSignatureIndexer) Start() error {
 		return errors.Wrap(err, "failed to init chain_info_id")
 	}
 
-	alreadyInit, err := idx.repo.CheckIndexPointerAlreadyInitialized(repository.IndexName, idx.ChainInfoID)
+	alreadyInit, err := idx.csRepo.CheckIndexPointerAlreadyInitialized(repository.IndexName, idx.ChainInfoID)
 	if err != nil {
 		return errors.Wrap(err, "failed to check init tables")
 	}
 	if !alreadyInit {
 		idx.Warnf("it's not initialized in the database, so that this package will initalize at %d as a init index point", idx.Lh.LatestHeight)
 		idx.Warnf("%s,%s,%d", repository.IndexName, idx.ChainID, idx.Lh.LatestHeight)
-		idx.repo.InitPartitionTablesByChainInfoID(repository.IndexName, idx.ChainID, idx.earliestBlockHeight)
-		idx.repo.CreateCovenantCommitteeInfoPartitionTableByChainID(idx.ChainID)
+		idx.csRepo.InitPartitionTablesByChainInfoID(repository.IndexName, idx.ChainID, idx.earliestBlockHeight)
+		idx.btcDelRepo.CreatePartitionTable(repository.SubIndexName, idx.ChainID)
+		idx.csRepo.CreateCovenantCommitteeInfoPartitionTableByChainID(idx.ChainID)
 	}
 
 	// get last index pointer, index pointer is always initalize if not exist
-	initIndexPointer, err := idx.repo.GetLastIndexPointerByIndexTableName(repository.IndexName, idx.ChainInfoID)
+	initIndexPointer, err := idx.csRepo.GetLastIndexPointerByIndexTableName(repository.IndexName, idx.ChainInfoID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get last index pointer")
 	}
 
-	err = idx.FetchCovenantCommitteeList()
+	err = idx.FetchValidatorInfoList()
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch covenant committee list")
 	}
@@ -81,8 +85,8 @@ func (idx *CovenantSignatureIndexer) Start() error {
 			})
 		}
 
-		idx.repo.InsertCovenantCommitteeInfoList(newCovenantCommitteeInfoList)
-		err = idx.FetchCovenantCommitteeList()
+		idx.csRepo.InsertCovenantCommitteeInfoList(newCovenantCommitteeInfoList)
+		err = idx.FetchValidatorInfoList()
 		if err != nil {
 			return errors.Wrap(err, "failed to fetch covenant committee list")
 		}
@@ -108,7 +112,7 @@ func (idx *CovenantSignatureIndexer) Start() error {
 		}
 		for {
 			idx.Infof("for time retention, delete old records over %s and sleep %s", idx.RetentionPeriod, indexertypes.RetentionQuerySleepDuration)
-			idx.repo.DeleteOldCovenantSignatureList(idx.ChainID, idx.RetentionPeriod)
+			idx.csRepo.DeleteOldCovenantSignatureList(idx.ChainID, idx.RetentionPeriod)
 			time.Sleep(indexertypes.RetentionQuerySleepDuration)
 		}
 	}()
@@ -120,7 +124,7 @@ func (idx *CovenantSignatureIndexer) Start() error {
 func (idx *CovenantSignatureIndexer) InitChainInfoID() error {
 	isNewChain := false
 	var chainInfoID int64
-	chainInfoID, err := idx.repo.SelectChainInfoIDByChainID(idx.ChainID)
+	chainInfoID, err := idx.csRepo.SelectChainInfoIDByChainID(idx.ChainID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			idx.Infof("this is new chain id: %s", idx.ChainID)
@@ -131,7 +135,7 @@ func (idx *CovenantSignatureIndexer) InitChainInfoID() error {
 	}
 
 	if isNewChain {
-		chainInfoID, err = idx.repo.InsertChainInfo(idx.ChainName, idx.ChainID, idx.Mainnet)
+		chainInfoID, err = idx.csRepo.InsertChainInfo(idx.ChainName, idx.ChainID, idx.Mainnet)
 		if err != nil {
 			return errors.Wrap(err, "failed to insert new chain_info_id by chain-id")
 		}
@@ -177,7 +181,7 @@ func (idx *CovenantSignatureIndexer) Loop(indexPoint int64) {
 			common.Health.With(idx.RootLabels).Set(0)
 			common.Ops.With(idx.RootLabels).Inc()
 			isUnhealth = true
-			idx.Errorf("failed to sync status in %d epoch: %s, it will be retried after sleep %s...",
+			idx.Errorf("failed to sync status in %d block %s, it will be retried after sleep %s...",
 				indexPoint, err, indexertypes.AfterFailedRetryTimeout.String(),
 			)
 			time.Sleep(indexertypes.AfterFailedRetryTimeout)
@@ -206,9 +210,9 @@ func (idx *CovenantSignatureIndexer) Loop(indexPoint int64) {
 	}
 }
 
-func (idx *CovenantSignatureIndexer) FetchCovenantCommitteeList() error {
+func (idx *CovenantSignatureIndexer) FetchValidatorInfoList() error {
 	// get already saved covenant committee members list for mapping covenant committee ids
-	covenantCommitteeInfoList, err := idx.repo.GetCovenantCommitteeInfoListByChainInfoID(idx.ChainInfoID)
+	covenantCommitteeInfoList, err := idx.csRepo.GetCovenantCommitteeInfoListByChainInfoID(idx.ChainInfoID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get validator info list")
 	}

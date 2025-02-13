@@ -19,6 +19,15 @@ func (idx *CovenantSignatureIndexer) initLabelsAndMetrics() {
 	})
 	idx.MetricsCountVecMap[common.CovenantSigCountMetricName] = covenantSigMetric
 
+	findBtcDelegationMetric := idx.Factory.NewCounter(prometheus.CounterOpts{
+		Namespace: common.Namespace,
+		Subsystem: subsystem,
+		Name:      common.BtcDelegationCountTotalMetricName,
+		Help:      "The total number of BTC delegations found at the time the indexer started.",
+	})
+
+	idx.MetricsCountMap[common.BtcDelegationCountTotalMetricName] = findBtcDelegationMetric
+
 	latestBlockHeightMetric := idx.Factory.NewGauge(prometheus.GaugeOpts{
 		Namespace:   common.Namespace,
 		Subsystem:   subsystem,
@@ -45,22 +54,33 @@ func (idx *CovenantSignatureIndexer) initMetricState(covenantCommitteeMap map[st
 			covenantSigMetric.WithLabelValues(btcPk).Add(0)
 		}
 	}
+
+	btcDelegationMetrics, ok := idx.MetricsCountMap[common.BtcDelegationCountTotalMetricName]
+	if ok {
+		btcDelegationMetrics.Add(0)
+	}
 }
 
-func (idx *CovenantSignatureIndexer) updatePrometheusMetrics(covenantSigs [][]model.BabylonCovenantSignature, indexPointerTimestamp time.Time) {
+func (idx *CovenantSignatureIndexer) updatePrometheusMetrics(
+	covenantSignatureList []model.BabylonCovenantSignature,
+	btcDelegationsList []model.BabylonBtcDelegation,
+	indexPointerTimestamp time.Time,
+) {
 	covenantSigMetric, ok := idx.MetricsCountVecMap[common.CovenantSigCountMetricName]
 	if ok {
-		for _, sigList := range covenantSigs {
-			for _, sig := range sigList {
-				for btcPk, id := range idx.covenantCommitteeMap {
-					if id == sig.CovenantBtcPkID {
-						// add count
-						covenantSigMetric.WithLabelValues(btcPk).Add(1)
-					}
+		for _, sig := range covenantSignatureList {
+			for btcPk, id := range idx.covenantCommitteeMap {
+				if id == sig.CovenantBtcPkID {
+					// add count
+					covenantSigMetric.WithLabelValues(btcPk).Add(1)
 				}
 			}
 		}
 	}
 
+	btcDelegationMetrics, ok := idx.MetricsCountMap[common.BtcDelegationCountTotalMetricName]
+	if ok {
+		btcDelegationMetrics.Add(float64(len(btcDelegationsList)))
+	}
 	idx.MetricsMap[common.IndexPointerBlockTimestampMetricName].Set((float64(indexPointerTimestamp.Unix())))
 }
