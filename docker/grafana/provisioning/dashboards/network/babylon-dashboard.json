@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 5,
+  "id": 7,
   "links": [],
   "panels": [
     {
@@ -28,7 +28,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 0
@@ -43,7 +43,7 @@
         "content": "<!-- Main content -->\n<div style=\"display: flex; justify-content: space-between; align-items: center;\">\n  <!-- H2 with a link -->\n   <a href=\"https://github.com/cosmostation/cvms\" target=\"_blank\" style=\"text-decoration: none; color: inherit;\">\n    <h2 style=\"margin-right: 10px;\">Cosmos Validator Monitoring Service (CVMS) 🌌 🔭</h2>\n  </a> \n  <!-- \"Powered by Cosmostation\" on the right -->\n  <div style=\"display: flex; align-items: center;\">\n    <a href=\"https://cosmostation.io\" target=\"_blank\" style=\"text-decoration: none; color: inherit;\">\n        <span>Powered by Cosmostation </span>\n        <img src=\"https://raw.githubusercontent.com/cosmostation/chainlist/refs/heads/main/resource/cosmostation/cosmostation_color.svg\" alt=\"Logo\" style=\"height: 30px; margin-left: 5px;\">\n    </a>\n  </div>\n</div>\n\n<!-- Paragraph below the header -->\n<p>\n  The Cosmos Validator Monitoring Service (CVMS) is an open-source, integrated monitoring system designed for validators and network in the Cosmos app chain ecosystem.<br/>\n  This public dashboard is a playground for developers and beta release testing for CVMS.\n</p>\n<p>\n  <a href=\"https://github.com/cosmostation/cvms\" target=\"_blank\" style=\"text-decoration: none; color: #1E90FF;\">\n    👉 CVMS Github Link Here!\n  </a> \n  <a href=\"https://github.com/cosmostation/cvms/blob/release/docs/setup.md\" target=\"_blank\" style=\"text-decoration: none; color: #1E90FF;\">\n    👉 CVMS Setup Guide Here!!\n  </a> \n</p>",
         "mode": "html"
       },
-      "pluginVersion": "11.5.0",
+      "pluginVersion": "11.4.0",
       "title": "",
       "transparent": true,
       "type": "text"
@@ -62,7 +62,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 5
       },
       "id": 11,
       "options": {
@@ -140,11 +140,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 11
       },
-      "id": 7,
+      "id": 18,
       "panels": [],
-      "title": "Finality Provider Dashboards",
+      "title": "Covenant Committee Dashboards",
       "type": "row"
     },
     {
@@ -158,12 +158,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 34,
-        "w": 12,
+        "h": 12,
+        "w": 24,
         "x": 0,
-        "y": 11
+        "y": 12
       },
-      "id": 1,
+      "id": 17,
       "options": {
         "allData": {},
         "config": {},
@@ -194,7 +194,7 @@
         },
         "onclick": "// Event handling\n/*\n// 'data', 'variables', 'options', 'utils', and 'event' are passed as arguments\n\ntry {\n  const { type: eventType, data: eventData } = event;\n  const { timeZone, dayjs, locationService, getTemplateSrv } = utils;\n\n  switch (eventType) {\n    case 'click':\n      console.log('Click event:', eventData.points);\n      break;\n    case 'select':\n      console.log('Selection event:', eventData.range);\n      break;\n    case 'zoom':\n      console.log('Zoom event:', eventData);\n      break;\n    default:\n      console.log('Unhandled event type:', eventType, eventData);\n  }\n\n  console.log('Current time zone:', timeZone);\n  console.log('From time:', dayjs(variables.__from).format());\n  console.log('To time:', dayjs(variables.__to).format());\n\n  // Example of using locationService\n  // locationService.partial({ 'var-example': 'test' }, true);\n\n} catch (error) {\n  console.error('Error in onclick handler:', error);\n}\n*/\n  ",
         "resScale": 2,
-        "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\nlet address = series.fields[3];\nlet btc_pk = series.fields[4];\n\nif (moniker.values[0].length > 90) {\n  // Shorten the moniker values before sorting and using them\n  let shortenedMonikers = moniker.values.map(m => shortenMoniker(m));\n  moniker.values = shortenedMonikers;\n}\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  \n  let pk = btc_pk.values[i];\n  let addr = address.values[i];\n\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}<br>btc_pk: ${pk}<br>address: ${addr}`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(255, 0, 0, 0.5)'],\n  [0.33, 'rgba(0, 0, 0, 0.5)'],\n  [0.66, 'rgba(0, 0, 0, 0.5)'], \n  [1, 'rgba(0, 0, 0, 0.5)'],\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the voted status to its corresponding meaning\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 0:\n      return 'Missed';\n    case 1:\n      return 'Voted';\n    default:\n      return 'Unknown';\n  }\n}\n\n// Function to shorten long moniker values\nfunction shortenMoniker(moniker, startLength = 6, endLength = 4) {\n  if (moniker.length > (startLength + endLength)) {\n    return `${moniker.substring(0, startLength)}...${moniker.substring(moniker.length - endLength)}`;\n  }\n  return moniker;  // If it's already short, return as-is\n}",
+        "script": "let series = data.series[0];\n\nif (!series || series.fields.length === 0 || series.fields[0].values.length === 0) {\n  return {\n    data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10,\n      margin: { l: 20, r: 20, t: 40, b: 40 }\n    }\n  };\n}\n\nlet btcStakingTxHash = series.fields.find(f => f.name === 'btc_staking_tx_hash');\nlet covenantBtcPk = series.fields.find(f => f.name === 'covenant_btc_pk');\nlet status = series.fields.find(f => f.name === 'status');\nlet signedHeight = series.fields.find(f => f.name === 'signature_height');\nlet delegationHeight = series.fields.find(f => f.name === 'delegation_height'); // ✅ delegation_height 추가\n\nif (!btcStakingTxHash || !covenantBtcPk || !status || !signedHeight || !delegationHeight) {\n  return {\n    data: [],\n    layout: {\n      title: 'Invalid Data',\n      height: 10,\n      margin: { l: 20, r: 20, t: 40, b: 40 }\n    }\n  };\n}\n\nfunction trimLabel(label) {\n  if (label.length > 10) {\n    return label.substring(0, 4) + \"...\" + label.substring(label.length - 4);\n  }\n  return label;\n}\n\nlet dataEntries = btcStakingTxHash.values.map((txHash, i) => ({\n  btc_staking_tx_hash: txHash,\n  covenant_btc_pk: covenantBtcPk.values[i],\n  status: status.values[i],\n  signed_height: signedHeight.values[i],\n  delegation_height: delegationHeight.values[i]\n}));\n\ndataEntries.sort((a, b) => b.delegation_height - a.delegation_height);\n\nlet uniqueBtcStakingTxHashs = [...new Set(dataEntries.map(entry => entry.btc_staking_tx_hash))];\nlet uniqueCovenantBtcPks = [...new Set(dataEntries.map(entry => entry.covenant_btc_pk))];\n\nlet zValues = Array(uniqueCovenantBtcPks.length).fill(null).map(() => Array(uniqueBtcStakingTxHashs.length).fill(0));\nlet hoverText = Array(uniqueCovenantBtcPks.length).fill(null).map(() => Array(uniqueBtcStakingTxHashs.length).fill(\"\"));\n\nfor (let entry of dataEntries) {\n  let rowIndex = uniqueCovenantBtcPks.indexOf(entry.covenant_btc_pk);\n  let colIndex = uniqueBtcStakingTxHashs.indexOf(entry.btc_staking_tx_hash);\n\n  if (rowIndex !== -1 && colIndex !== -1 && entry.status !== null) {\n    let statusValue = entry.status ? 1 : 0;\n    zValues[rowIndex][colIndex] = statusValue;\n\n    hoverText[rowIndex][colIndex] = `\n    BTC_Staking_Tx_Hash: <b>${entry.btc_staking_tx_hash}</b><br>\n    Committee_BTC_PK: <b>${entry.covenant_btc_pk}</b><br>\n    Delegation_Height: <b>${entry.delegation_height}</b><br>\n    Signed_Height: <b>${entry.signed_height}</b><br>\n    Status: <b>${entry.status ? \"✅ Signed\" : \"❌ Missed\"}</b>\n    `;\n  }\n}\n\nlet colorScale = [\n  [0, 'rgba(255, 0, 0, 0.5)'], // Missed = red\n  [1, 'rgba(0, 255, 0, 0.5)'], // Success = green\n];\n\nreturn {\n  data: [{\n    z: zValues,\n    x: uniqueBtcStakingTxHashs,\n    y: uniqueCovenantBtcPks,\n    type: 'heatmap',\n    colorscale: colorScale,\n    showscale: false,\n    zmin: 0,\n    zmax: 1,\n    xgap: 5,\n    ygap: 5,\n    text: hoverText,\n    hoverinfo: 'text'\n  }],\n  layout: {\n    // title: \"BTC Staking Heatmap\",\n    xaxis: {\n      title: \"BTC Staking TX Hash\",\n      type: 'category',\n      tickmode: 'array',\n      tickvals: uniqueBtcStakingTxHashs,\n      ticktext: uniqueBtcStakingTxHashs.map(trimLabel),\n      tickangle: -45,\n      showgrid: true\n    },\n    yaxis: {\n      title: \"Covenant BTC PK\",\n      tickmode: 'array',\n      tickvals: uniqueCovenantBtcPks,\n      ticktext: uniqueCovenantBtcPks.map(trimLabel),\n      showgrid: true\n    },\n    margin: { l: 200, t: 40, b: 100 }\n  }\n};",
         "syncTimeRange": false,
         "timeCol": ""
       },
@@ -208,7 +208,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": ";  -- Order in ascending order for the last 100 blocks\nWITH max_height AS (\n  SELECT MAX(height) AS highest_height\n  FROM babylon_finality_provider_${chain_id}\n)\nSELECT\n  bfp.height,\n  bfp.status,\n  fpi.moniker AS moniker,\n  fpi.operator_address as address,\n  fpi.btc_pk as btc_pk\nFROM\n  babylon_finality_provider_${chain_id} bfp\nJOIN\n  meta.finality_provider_info fpi\n  ON bfp.finality_provider_pk_id = fpi.id\nJOIN\n  max_height mh  -- Join to get the maximum block height\n  ON bfp.height BETWEEN (mh.highest_height - 50) AND mh.highest_height\nORDER by\n  bfp.height ASC\n  \n  ",
+          "rawSql": "WITH latest_delegations AS (\n    SELECT * \n    FROM public.babylon_btc_delegation \n    ORDER BY height DESC\n    LIMIT 100\n)\nSELECT \n    ld.chain_info_id,\n    ld.height AS delegation_height,\n    ld.btc_staking_tx_hash,\n    COALESCE(bcs.height, -1) AS signature_height,  \n    COALESCE(bcs.covenant_btc_pk_id, cci.id) AS covenant_btc_pk_id,\n    COALESCE(cci.covenant_btc_pk, 'N/A') AS covenant_btc_pk,\n    CASE \n        WHEN bcs.btc_staking_tx_hash IS NOT NULL AND cci.id IS NOT NULL THEN TRUE\n        ELSE FALSE\n    END AS status\nFROM latest_delegations ld\nCROSS JOIN meta.covenant_committee_info cci \nLEFT JOIN public.babylon_covenant_signature bcs \n    ON ld.btc_staking_tx_hash = bcs.btc_staking_tx_hash\n    AND ld.chain_info_id = bcs.chain_info_id\n    AND cci.id = bcs.covenant_btc_pk_id\nWHERE ld.chain_info_id = cci.chain_info_id\nORDER BY ld.height DESC, cci.id;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -229,316 +229,417 @@
           }
         }
       ],
-      "title": "Finality Provider Vote Status",
+      "title": "Covenant Signing State",
       "transparent": true,
       "type": "nline-plotlyjs-panel"
     },
     {
-      "datasource": {
-        "default": true,
-        "type": "prometheus",
-        "uid": "cvms_exporter_db"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "decimals": 1,
-          "fieldMinMax": false,
-          "mappings": [],
-          "max": 100,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Value"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "${__field.labels.moniker}"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 34,
-        "w": 12,
-        "x": 12,
-        "y": 11
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.5.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "cvms_exporter_db"
-          },
-          "editorMode": "code",
-          "expr": "round(1 - cvms_finality_provider_uptime_missed_blocks_counter / on (chain_id) group_left cvms_finality_provider_uptime_signed_blocks_window, 0.001) * 100",
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Finality Provider Uptime Trend",
-      "transparent": true,
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 24
       },
-      "id": 5,
-      "panels": [],
-      "title": "Validator Signing Dashboards",
+      "id": 7,
+      "panels": [
+        {
+          "datasource": {
+            "default": false,
+            "type": "grafana-postgresql-datasource",
+            "uid": "cvms_indexer_db"
+          },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 34,
+            "w": 12,
+            "x": 0,
+            "y": 60
+          },
+          "id": 1,
+          "options": {
+            "allData": {},
+            "config": {},
+            "data": [],
+            "imgFormat": "png",
+            "layout": {
+              "font": {
+                "family": "Inter, Helvetica, Arial, sans-serif"
+              },
+              "margin": {
+                "b": 0,
+                "l": 0,
+                "r": 0,
+                "t": 0
+              },
+              "title": {
+                "automargin": true
+              },
+              "xaxis": {
+                "automargin": true,
+                "autorange": true,
+                "type": "date"
+              },
+              "yaxis": {
+                "automargin": true,
+                "autorange": true
+              }
+            },
+            "onclick": "// Event handling\n/*\n// 'data', 'variables', 'options', 'utils', and 'event' are passed as arguments\n\ntry {\n  const { type: eventType, data: eventData } = event;\n  const { timeZone, dayjs, locationService, getTemplateSrv } = utils;\n\n  switch (eventType) {\n    case 'click':\n      console.log('Click event:', eventData.points);\n      break;\n    case 'select':\n      console.log('Selection event:', eventData.range);\n      break;\n    case 'zoom':\n      console.log('Zoom event:', eventData);\n      break;\n    default:\n      console.log('Unhandled event type:', eventType, eventData);\n  }\n\n  console.log('Current time zone:', timeZone);\n  console.log('From time:', dayjs(variables.__from).format());\n  console.log('To time:', dayjs(variables.__to).format());\n\n  // Example of using locationService\n  // locationService.partial({ 'var-example': 'test' }, true);\n\n} catch (error) {\n  console.error('Error in onclick handler:', error);\n}\n*/\n  ",
+            "resScale": 2,
+            "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\nlet address = series.fields[3];\nlet btc_pk = series.fields[4];\n\nif (moniker.values[0].length > 90) {\n  // Shorten the moniker values before sorting and using them\n  let shortenedMonikers = moniker.values.map(m => shortenMoniker(m));\n  moniker.values = shortenedMonikers;\n}\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  \n  let pk = btc_pk.values[i];\n  let addr = address.values[i];\n\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}<br>btc_pk: ${pk}<br>address: ${addr}`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(255, 0, 0, 0.5)'],\n  [0.33, 'rgba(0, 0, 0, 0.5)'],\n  [0.66, 'rgba(0, 0, 0, 0.5)'], \n  [1, 'rgba(0, 0, 0, 0.5)'],\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the voted status to its corresponding meaning\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 0:\n      return 'Missed';\n    case 1:\n      return 'Voted';\n    default:\n      return 'Unknown';\n  }\n}\n\n// Function to shorten long moniker values\nfunction shortenMoniker(moniker, startLength = 6, endLength = 4) {\n  if (moniker.length > (startLength + endLength)) {\n    return `${moniker.substring(0, startLength)}...${moniker.substring(moniker.length - endLength)}`;\n  }\n  return moniker;  // If it's already short, return as-is\n}",
+            "syncTimeRange": false,
+            "timeCol": ""
+          },
+          "pluginVersion": "1.8.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "cvms_indexer_db"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": ";  -- Order in ascending order for the last 100 blocks\nWITH max_height AS (\n  SELECT MAX(height) AS highest_height\n  FROM babylon_finality_provider_${chain_id}\n)\nSELECT\n  bfp.height,\n  bfp.status,\n  fpi.moniker AS moniker,\n  fpi.operator_address as address,\n  fpi.btc_pk as btc_pk\nFROM\n  babylon_finality_provider_${chain_id} bfp\nJOIN\n  meta.finality_provider_info fpi\n  ON bfp.finality_provider_pk_id = fpi.id\nJOIN\n  max_height mh  -- Join to get the maximum block height\n  ON bfp.height BETWEEN (mh.highest_height - 50) AND mh.highest_height\nORDER by\n  bfp.height ASC\n  \n  ",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Finality Provider Vote Status",
+          "transparent": true,
+          "type": "nline-plotlyjs-panel"
+        },
+        {
+          "datasource": {
+            "default": true,
+            "type": "prometheus",
+            "uid": "cvms_exporter_db"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "line"
+                }
+              },
+              "decimals": 1,
+              "fieldMinMax": false,
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 5
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "${__field.labels.moniker}"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 34,
+            "w": 12,
+            "x": 12,
+            "y": 60
+          },
+          "id": 10,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.4.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "cvms_exporter_db"
+              },
+              "editorMode": "code",
+              "expr": "round(1 - cvms_finality_provider_uptime_missed_blocks_counter / on (chain_id) group_left cvms_finality_provider_uptime_signed_blocks_window, 0.001) * 100",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Finality Provider Uptime Trend",
+          "transparent": true,
+          "type": "timeseries"
+        }
+      ],
+      "title": "Finality Provider Dashboards",
       "type": "row"
     },
     {
-      "datasource": {
-        "default": false,
-        "type": "grafana-postgresql-datasource",
-        "uid": "cvms_indexer_db"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
+      "collapsed": true,
       "gridPos": {
-        "h": 40,
-        "w": 12,
+        "h": 1,
+        "w": 24,
         "x": 0,
-        "y": 46
+        "y": 25
       },
-      "id": 8,
-      "options": {
-        "allData": {},
-        "config": {},
-        "data": [],
-        "imgFormat": "png",
-        "layout": {
-          "font": {
-            "family": "Inter, Helvetica, Arial, sans-serif"
-          },
-          "margin": {
-            "b": 0,
-            "l": 0,
-            "r": 0,
-            "t": 0
-          },
-          "title": {
-            "automargin": true
-          },
-          "xaxis": {
-            "automargin": true,
-            "autorange": true,
-            "type": "date"
-          },
-          "yaxis": {
-            "automargin": true,
-            "autorange": true
-          }
-        },
-        "onclick": "// Event handling\n/*\n// 'data', 'variables', 'options', 'utils', and 'event' are passed as arguments\n\ntry {\n  const { type: eventType, data: eventData } = event;\n  const { timeZone, dayjs, locationService, getTemplateSrv } = utils;\n\n  switch (eventType) {\n    case 'click':\n      console.log('Click event:', eventData.points);\n      break;\n    case 'select':\n      console.log('Selection event:', eventData.range);\n      break;\n    case 'zoom':\n      console.log('Zoom event:', eventData);\n      break;\n    default:\n      console.log('Unhandled event type:', eventType, eventData);\n  }\n\n  console.log('Current time zone:', timeZone);\n  console.log('From time:', dayjs(variables.__from).format());\n  console.log('To time:', dayjs(variables.__to).format());\n\n  // Example of using locationService\n  // locationService.partial({ 'var-example': 'test' }, true);\n\n} catch (error) {\n  console.error('Error in onclick handler:', error);\n}\n*/\n  ",
-        "resScale": 2,
-        "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\n\n\nif (moniker.values[0].length > 90) {\n  // Shorten the moniker values before sorting and using them\n  let shortenedMonikers = moniker.values.map(m => shortenMoniker(m));\n  moniker.values = shortenedMonikers;\n}\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(128, 128, 128, 0.5)'],    // Inactive = gray\n  [0.33, 'rgba(255, 0, 0, 0.5)'],     // Missed = red\n  [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n  [1, 'rgba(0, 255, 0, 0.5)'],        // Proposed = green\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the voted status to its corresponding meaning\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 0:\n      return 'Inactive';\n    case 1:\n      return 'Missed';\n    case 2:\n      return 'Voted';\n    case 3:\n      return 'Proposed';\n    default:\n      return 'Unknown';\n  }\n}\n\n// Function to shorten long moniker values\nfunction shortenMoniker(moniker, startLength = 6, endLength = 4) {\n  if (moniker.length > (startLength + endLength)) {\n    return `${moniker.substring(0, startLength)}...${moniker.substring(moniker.length - endLength)}`;\n  }\n  return moniker;  // If it's already short, return as-is\n}",
-        "syncTimeRange": false,
-        "timeCol": ""
-      },
-      "pluginVersion": "1.8.1",
-      "targets": [
+      "id": 5,
+      "panels": [
         {
           "datasource": {
+            "default": false,
             "type": "grafana-postgresql-datasource",
             "uid": "cvms_indexer_db"
           },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": ";  -- Order in ascending order for the last 100 blocks\nWITH max_height AS (\n  SELECT MAX(height) AS highest_height\n  FROM voteindexer_${chain_id}\n)\nSELECT\n  vidx.height,\n  vidx.status,\n  vi.moniker AS moniker\nFROM\n  voteindexer_${chain_id} vidx\nJOIN\n  meta.validator_info vi\n  ON vidx.validator_hex_address_id = vi.id\nJOIN\n  max_height mh  -- Join to get the maximum block height\n  ON vidx.height BETWEEN (mh.highest_height - 50) AND mh.highest_height\nORDER by\n  vidx.height ASC\n  \n  ",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 40,
+            "w": 12,
+            "x": 0,
+            "y": 53
+          },
+          "id": 8,
+          "options": {
+            "allData": {},
+            "config": {},
+            "data": [],
+            "imgFormat": "png",
+            "layout": {
+              "font": {
+                "family": "Inter, Helvetica, Arial, sans-serif"
+              },
+              "margin": {
+                "b": 0,
+                "l": 0,
+                "r": 0,
+                "t": 0
+              },
+              "title": {
+                "automargin": true
+              },
+              "xaxis": {
+                "automargin": true,
+                "autorange": true,
+                "type": "date"
+              },
+              "yaxis": {
+                "automargin": true,
+                "autorange": true
               }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
+            },
+            "onclick": "// Event handling\n/*\n// 'data', 'variables', 'options', 'utils', and 'event' are passed as arguments\n\ntry {\n  const { type: eventType, data: eventData } = event;\n  const { timeZone, dayjs, locationService, getTemplateSrv } = utils;\n\n  switch (eventType) {\n    case 'click':\n      console.log('Click event:', eventData.points);\n      break;\n    case 'select':\n      console.log('Selection event:', eventData.range);\n      break;\n    case 'zoom':\n      console.log('Zoom event:', eventData);\n      break;\n    default:\n      console.log('Unhandled event type:', eventType, eventData);\n  }\n\n  console.log('Current time zone:', timeZone);\n  console.log('From time:', dayjs(variables.__from).format());\n  console.log('To time:', dayjs(variables.__to).format());\n\n  // Example of using locationService\n  // locationService.partial({ 'var-example': 'test' }, true);\n\n} catch (error) {\n  console.error('Error in onclick handler:', error);\n}\n*/\n  ",
+            "resScale": 2,
+            "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\n\n\nif (moniker.values[0].length > 90) {\n  // Shorten the moniker values before sorting and using them\n  let shortenedMonikers = moniker.values.map(m => shortenMoniker(m));\n  moniker.values = shortenedMonikers;\n}\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(128, 128, 128, 0.5)'],    // Inactive = gray\n  [0.33, 'rgba(255, 0, 0, 0.5)'],     // Missed = red\n  [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n  [1, 'rgba(0, 255, 0, 0.5)'],        // Proposed = green\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the voted status to its corresponding meaning\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 0:\n      return 'Inactive';\n    case 1:\n      return 'Missed';\n    case 2:\n      return 'Voted';\n    case 3:\n      return 'Proposed';\n    default:\n      return 'Unknown';\n  }\n}\n\n// Function to shorten long moniker values\nfunction shortenMoniker(moniker, startLength = 6, endLength = 4) {\n  if (moniker.length > (startLength + endLength)) {\n    return `${moniker.substring(0, startLength)}...${moniker.substring(moniker.length - endLength)}`;\n  }\n  return moniker;  // If it's already short, return as-is\n}",
+            "syncTimeRange": false,
+            "timeCol": ""
+          },
+          "pluginVersion": "1.8.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "cvms_indexer_db"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": ";  -- Order in ascending order for the last 100 blocks\nWITH max_height AS (\n  SELECT MAX(height) AS highest_height\n  FROM voteindexer_${chain_id}\n)\nSELECT\n  vidx.height,\n  vidx.status,\n  vi.moniker AS moniker\nFROM\n  voteindexer_${chain_id} vidx\nJOIN\n  meta.validator_info vi\n  ON vidx.validator_hex_address_id = vi.id\nJOIN\n  max_height mh  -- Join to get the maximum block height\n  ON vidx.height BETWEEN (mh.highest_height - 50) AND mh.highest_height\nORDER by\n  vidx.height ASC\n  \n  ",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
               }
-            ],
-            "limit": 50
-          }
-        }
-      ],
-      "title": "Consensus Vote Status",
-      "transparent": true,
-      "type": "nline-plotlyjs-panel"
-    },
-    {
-      "datasource": {
-        "default": false,
-        "type": "grafana-postgresql-datasource",
-        "uid": "cvms_indexer_db"
-      },
-      "description": "Extension Vote means ABCI++(2.0) feature.",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 40,
-        "w": 12,
-        "x": 12,
-        "y": 46
-      },
-      "id": 4,
-      "options": {
-        "allData": {},
-        "config": {},
-        "data": [],
-        "imgFormat": "png",
-        "layout": {
-          "font": {
-            "family": "Inter, Helvetica, Arial, sans-serif"
-          },
-          "margin": {
-            "b": 0,
-            "l": 0,
-            "r": 0,
-            "t": 0
-          },
-          "title": {
-            "automargin": true
-          },
-          "xaxis": {
-            "automargin": true,
-            "autorange": true,
-            "type": "date"
-          },
-          "yaxis": {
-            "automargin": true,
-            "autorange": true
-          }
+            }
+          ],
+          "title": "Consensus Vote Status",
+          "transparent": true,
+          "type": "nline-plotlyjs-panel"
         },
-        "onclick": "",
-        "resScale": 2,
-        "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\nlet epoch = series.fields[3]; // Moniker (Validator name)\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  let epoch_number = epoch.values[i];\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}(epoch: ${epoch_number})`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\n// let colorScale = [\n//   [0, 'rgba(255, 0, 0, 0.5)'],    // Inactive = gray\n//   [0.33, 'rgba(0, 0, 0, 0.5)'],     // Missed = red\n//   [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n//   [1, 'rgba(0, 0, 0, 0.5)'],        // Nill = yellow\n// ];\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(128, 128, 128, 0.5)'],    // Inactive = gray\n  [0.33, 'rgba(255, 0, 0, 0.5)'],     // Missed = red\n  [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n  [1, 'rgba(255, 255, 0, 0.5)'],        // Nill = yellow\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the ve status to its corresponding meaning\n// ref; https://github.com/cometbft/cometbft/blob/v0.38.x/proto/tendermint/types/validator.pb.go\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 1:\n      return 'Absent';\n    case 2:\n      return 'Commit';\n    case 3:\n      return 'Nil';\n    default:\n      return 'Unknown';\n  }\n}",
-        "syncTimeRange": false,
-        "timeCol": ""
-      },
-      "pluginVersion": "1.8.1",
-      "targets": [
         {
           "datasource": {
+            "default": false,
             "type": "grafana-postgresql-datasource",
             "uid": "cvms_indexer_db"
           },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "WITH epoch AS (\n  SELECT MAX(epoch) as max_epoch FROM babylon_checkpoint_${chain_id}\n)\n select\n  idx.height,\n  idx.status,\n  vi.moniker AS moniker,\n  idx.epoch\nFROM\n  babylon_checkpoint_${chain_id} idx\nJOIN\n  meta.validator_info vi\n  ON idx.validator_hex_address_id = vi.id\nJOIN\n  epoch\n  ON idx.epoch BETWEEN (epoch.max_epoch - 30) AND epoch.max_epoch\nORDER by\n  idx.height DESC\n",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
+          "description": "Extension Vote means ABCI++(2.0) feature.",
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 40,
+            "w": 12,
+            "x": 12,
+            "y": 53
+          },
+          "id": 4,
+          "options": {
+            "allData": {},
+            "config": {},
+            "data": [],
+            "imgFormat": "png",
+            "layout": {
+              "font": {
+                "family": "Inter, Helvetica, Arial, sans-serif"
+              },
+              "margin": {
+                "b": 0,
+                "l": 0,
+                "r": 0,
+                "t": 0
+              },
+              "title": {
+                "automargin": true
+              },
+              "xaxis": {
+                "automargin": true,
+                "autorange": true,
+                "type": "date"
+              },
+              "yaxis": {
+                "automargin": true,
+                "autorange": true
               }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
+            },
+            "onclick": "",
+            "resScale": 2,
+            "script": "// Extracting the SQL data\nlet series = data.series[0];  // Access the data series\nif (!series || series.length === 0 || series.fields[0].values.length === 0) {\n  // Query result has no records, so skip the chart rendering\n  return {\n      data: [],\n    layout: {\n      title: 'No Data Available',\n      height: 10, // Reduce panel height\n      margin: {\n        l: 20,  // Left margin\n        r: 20,  // Right margin\n        t: 40,  // Top margin\n        b: 40   // Bottom margin\n      }\n    }\n  };\n}\n\n// Start data processing\nlet height = series.fields[0];  // Block height\nlet voted = series.fields[1];   // Voted status (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nlet moniker = series.fields[2]; // Moniker (Validator name)\nlet epoch = series.fields[3]; // Moniker (Validator name)\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  // Unique monikers for Y-axis\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    // Unique block heights for X-axis\n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\n// Populate zValues with voted data (0 = Inactive, 1 = Missed, 2 = Voted, 3 = Proposed)\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  // Find the correct row for the moniker\n  let colIndex = uniqueHeights.indexOf(height.values[i]);    // Find the correct column for the height\n  zValues[rowIndex][colIndex] = voted.values[i];  // Assign the voted status\n  let statusMeaning = getStatusMeaning(voted.values[i]);  // Get the status meaning\n  let epoch_number = epoch.values[i];\n  hoverText[rowIndex][colIndex] = `x: ${height.values[i]}<br>y: ${moniker.values[i]}<br>z: ${statusMeaning}(epoch: ${epoch_number})`;  // Custom hover info with status meaning    \n}\n\n// Define a continuous color scale for smoother transitions\n// let colorScale = [\n//   [0, 'rgba(255, 0, 0, 0.5)'],    // Inactive = gray\n//   [0.33, 'rgba(0, 0, 0, 0.5)'],     // Missed = red\n//   [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n//   [1, 'rgba(0, 0, 0, 0.5)'],        // Nill = yellow\n// ];\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(128, 128, 128, 0.5)'],    // Inactive = gray\n  [0.33, 'rgba(255, 0, 0, 0.5)'],     // Missed = red\n  [0.66, 'rgba(0, 0, 0, 0.5)'],       // Voted = black\n  [1, 'rgba(255, 255, 0, 0.5)'],        // Nill = yellow\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n// Function to map the ve status to its corresponding meaning\n// ref; https://github.com/cometbft/cometbft/blob/v0.38.x/proto/tendermint/types/validator.pb.go\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 1:\n      return 'Absent';\n    case 2:\n      return 'Commit';\n    case 3:\n      return 'Nil';\n    default:\n      return 'Unknown';\n  }\n}",
+            "syncTimeRange": false,
+            "timeCol": ""
+          },
+          "pluginVersion": "1.8.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "cvms_indexer_db"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "WITH epoch AS (\n  SELECT MAX(epoch) as max_epoch FROM babylon_checkpoint_${chain_id}\n)\n select\n  idx.height,\n  idx.status,\n  vi.moniker AS moniker,\n  idx.epoch\nFROM\n  babylon_checkpoint_${chain_id} idx\nJOIN\n  meta.validator_info vi\n  ON idx.validator_hex_address_id = vi.id\nJOIN\n  epoch\n  ON idx.epoch BETWEEN (epoch.max_epoch - 30) AND epoch.max_epoch\nORDER by\n  idx.height DESC\n",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
               }
-            ],
-            "limit": 50
-          }
+            }
+          ],
+          "title": "Checkpoint BLS Vote Status",
+          "transparent": true,
+          "type": "nline-plotlyjs-panel"
         }
       ],
-      "title": "Checkpoint BLS Vote Status",
-      "transparent": true,
-      "type": "nline-plotlyjs-panel"
+      "title": "Validator Signing Dashboards",
+      "type": "row"
     }
   ],
   "preload": false,
@@ -603,6 +704,6 @@
   "timezone": "browser",
   "title": "Babylon Dashboard",
   "uid": "babylon_dashboard",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
