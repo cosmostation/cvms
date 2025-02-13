@@ -88,6 +88,7 @@ func NewIndexer(p Packager, subsystem string, chainID string) *Indexer {
 		// skip latestHeightCache
 		Factory:            p.Factory,
 		MetricsMap:         map[string]prometheus.Gauge{},
+		MetricsCountMap:    map[string]prometheus.Counter{},
 		MetricsVecMap:      map[string]*prometheus.GaugeVec{},
 		MetricsCountVecMap: map[string]*prometheus.CounterVec{},
 		RootLabels:         BuildRootLabels(p),

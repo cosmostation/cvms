@@ -113,6 +113,7 @@ func (idx *CovenantSignatureIndexer) Start() error {
 		for {
 			idx.Infof("for time retention, delete old records over %s and sleep %s", idx.RetentionPeriod, indexertypes.RetentionQuerySleepDuration)
 			idx.csRepo.DeleteOldCovenantSignatureList(idx.ChainID, idx.RetentionPeriod)
+			idx.btcDelRepo.DeleteOldBtcDelegationList(idx.ChainID, idx.RetentionPeriod)
 			time.Sleep(indexertypes.RetentionQuerySleepDuration)
 		}
 	}()

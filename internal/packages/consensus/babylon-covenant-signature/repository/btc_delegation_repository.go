@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmostation/cvms/internal/common"
 	indexerrepo "github.com/cosmostation/cvms/internal/common/indexer/repository"
+	dbhelper "github.com/cosmostation/cvms/internal/helper/db"
 	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/model"
 	"github.com/pkg/errors"
 	"github.com/uptrace/bun"
@@ -48,43 +49,35 @@ func (repo *BtcDelegationRepository) InsertBabylonBtcDelegationsList(chainInfoID
 	return nil
 }
 
-// func (repo *BtcDelegationRepository) DeleteOldCovenantSignatureList(chainID, retentionPeriod string) (
-// 	/* deleted rows */ int64,
-// 	/* unexpected error */ error,
-// ) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), repo.sqlTimeout)
-// 	defer cancel()
+func (repo *BtcDelegationRepository) DeleteOldBtcDelegationList(chainID, retentionPeriod string) (
+	/* deleted rows */ int64,
+	/* unexpected error */ error,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), repo.sqlTimeout)
+	defer cancel()
 
-// 	// Parsing retention period
-// 	duration, err := dbhelper.ParseRetentionPeriod(retentionPeriod)
-// 	if err != nil {
-// 		return 0, err
-// 	}
+	// Parsing retention period
+	duration, err := dbhelper.ParseRetentionPeriod(retentionPeriod)
+	if err != nil {
+		return 0, err
+	}
 
-// 	// Calculate cutoff time duration
-// 	cutoffTime := time.Now().Add(duration)
+	// Calculate cutoff time duration
+	cutoffTime := time.Now().Add(duration)
 
-// 	// Make partition table name
-// 	partitionTableName := dbhelper.MakePartitionTableName(IndexName, chainID)
+	// Make partition table name
+	partitionTableName := dbhelper.MakePartitionTableName(IndexName, chainID)
 
-// 	// Query Execution
-// 	res, err := repo.NewDelete().
-// 		Model((*model.BabylonCovenantSignature)(nil)).
-// 		ModelTableExpr(partitionTableName).
-// 		Where("timestamp < ?", cutoffTime).
-// 		Exec(ctx)
-// 	if err != nil {
-// 		return 0, err
-// 	}
+	// Query Execution
+	res, err := repo.NewDelete().
+		Model((*model.BabylonBtcDelegation)(nil)).
+		ModelTableExpr(partitionTableName).
+		Where("timestamp < ?", cutoffTime).
+		Exec(ctx)
+	if err != nil {
+		return 0, err
+	}
 
-// 	rowsAffected, _ := res.RowsAffected()
-// 	return rowsAffected, nil
-// }
-
-// func extractHashes(bcsList []model.BabylonCovenantSignature) []string {
-// 	hashes := make([]string, len(bcsList))
-// 	for i, bcs := range bcsList {
-// 		hashes[i] = bcs.BTCStakingTxHash
-// 	}
-// 	return hashes
-// }
+	rowsAffected, _ := res.RowsAffected()
+	return rowsAffected, nil
+}
