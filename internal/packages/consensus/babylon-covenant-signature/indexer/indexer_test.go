@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/common/api"
 	"github.com/cosmostation/cvms/internal/helper/logger"
-	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/model"
 	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -48,63 +46,56 @@ func TestLogic(t *testing.T) {
 	app.SetAPIEndPoint(p.Endpoints.APIs[0])
 	app.SetRPCEndPoint(p.Endpoints.RPCs[0])
 
-	testHeight := int64(245259)
-	height, timestamp, txs, err := api.GetBlockAndTxs(app.CommonClient, testHeight)
+	testHeight := int64(278894)
+	_, blockTimestamp, _, _, _, _, err := api.GetBlock(app.CommonClient, testHeight)
 	assert.NoError(t, err)
 
-	newMsgCovenantSigs := make([]MsgCovenantSignature, 0)
-	for _, tx := range txs {
-		for _, message := range tx.Body.Messages {
-			var preResult map[string]json.RawMessage
-			err := json.Unmarshal(message, &preResult)
+	txsEvents, _, err := api.GetBlockResults(app.CommonClient, testHeight)
+	assert.NoError(t, err)
+
+	covenantSigEvents := make([]EventCovenantSignature, 0)
+	btcDelegationEvents := make([]EventBtcDelegationCreated, 0)
+
+	for _, event := range txsEvents {
+		supportEvent, err := ParseDynamicEvent(event)
+		if errors.Is(err, common.ErrUnSupportedEventType) {
+			continue
+		} else {
 			assert.NoError(t, err)
+		}
 
-			if rawType, ok := preResult["@type"]; ok {
-				var typeValue string
-				err := json.Unmarshal(rawType, &typeValue)
-				assert.NoError(t, err)
-
-				parsedMsg, err := ParseDynamicMessage(message, typeValue)
-				if errors.Is(err, common.ErrUnSupportedMessageType) {
-					continue
-				} else {
-					assert.NoError(t, err)
-				}
-
-				covenantSig := parsedMsg.(MsgCovenantSignature)
-
-				newMsgCovenantSigs = append(newMsgCovenantSigs, covenantSig)
-			}
+		if e, ok := supportEvent.(EventCovenantSignature); ok {
+			covenantSigEvents = append(covenantSigEvents, e)
+		} else if e, ok := supportEvent.(EventBtcDelegationCreated); ok {
+			btcDelegationEvents = append(btcDelegationEvents, e)
 		}
 	}
 
-	t.Logf("got %d messages", len(newMsgCovenantSigs))
+	fmt.Println("Block Height: ", testHeight)
+	fmt.Println("Block Timestamp: ", blockTimestamp.Unix())
+	fmt.Println("========= Covenant Signature Events ========== Total:", len(covenantSigEvents))
+	for _, e := range covenantSigEvents {
+		fmt.Println("Covenant Btc Pk: ", e.CovenantBtcPkHex)
+		fmt.Println("Covenant Unbonding Sig: ", e.CovenantUnbondingSignature)
+		fmt.Println("Staing Tx Hash: ", e.StakingTxHash)
+		fmt.Println("-")
+	}
+	fmt.Println("========= BTC Delegation Events ========== Total:", len(btcDelegationEvents))
+	for _, e := range btcDelegationEvents {
+		escape, err := DecodeEscapedJSONString(e.StakingTxHash)
+		assert.NoError(t, err)
 
-	var modelList = make([]model.BabylonCovenantSignature, 0)
-	for idx, sig := range newMsgCovenantSigs {
-
-		// It's not yet clear if Committee members can change dynamically, we've added some temporary code to prevent panic
-		// pkID, exists := idx.covenantCommitteeMap[sig.Pk]
-		// if !exists {
-		// 	idx.Errorf("Missing covenant committee entry for PK: %s", sig.Pk)
-		// 	continue
-		// }
-
-		newCovenantSignature := model.BabylonCovenantSignature{
-			ChainInfoID:      1,
-			Height:           height,
-			CovenantBtcPkID:  int64(idx),
-			BTCStakingTxHash: sig.StakingTxHash,
-			Timestamp:        timestamp,
-		}
-
-		modelList = append(modelList, newCovenantSignature)
+		hash, err := DecodeBTCStakingTxByHexStr(escape)
+		assert.NoError(t, err)
+		fmt.Println("Staing Tx Hash: ", hash)
+		fmt.Println("-")
 	}
 
-	t.Logf("got %d model list", len(modelList))
-	for _, model := range modelList {
-		t.Logf("%s", model)
-	}
+	assert.Equal(t, blockTimestamp.Unix(), int64(1739364888))
+
+	// Success: 6, failed: 2(out of gas...)
+	assert.Equal(t, len(covenantSigEvents), 6)
+	assert.Equal(t, len(btcDelegationEvents), 1)
 }
 
 func TestStart(t *testing.T) {

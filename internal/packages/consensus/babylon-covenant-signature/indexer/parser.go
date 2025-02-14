@@ -27,7 +27,6 @@ import (
 // value is weird and fixed it
 func DecodeEscapedJSONString(value string) (string, error) {
 	var decodedString string
-	fmt.Println(value)
 	err := json.Unmarshal([]byte(value), &decodedString)
 	if err != nil {
 		return "", err
@@ -44,6 +43,24 @@ func DecodeBtcStakingTx(encodingString string) (string, error) {
 
 	hexStr := hex.EncodeToString(decodedBytes)
 
+	// Convert hex string to bytes
+	rawBytes, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return "", err
+	}
+
+	// Deserialize transaction
+	var tx wire.MsgTx
+
+	err = tx.Deserialize(bytes.NewReader(rawBytes))
+	if err != nil {
+		return "", err
+	}
+
+	return tx.TxHash().String(), nil
+}
+
+func DecodeBTCStakingTxByHexStr(hexStr string) (string, error) {
 	// Convert hex string to bytes
 	rawBytes, err := hex.DecodeString(hexStr)
 	if err != nil {
@@ -118,6 +135,35 @@ func ExtractBabylonCovenantSignature(txs []types.CosmosTx) (
 	}
 
 	return newMsgCovenantSigs, newMsgCreateBtcDelegations, nil
+}
+
+func ParseDynamicEvent(event types.BlockEvent) (interface{}, error) {
+	switch event.TypeName {
+	case BabylonCovenantSignatureReceivedEventType:
+		var eventCovenantSignature EventCovenantSignature
+		for _, attribute := range event.Attributes {
+			switch attribute.Key {
+			case "covenant_btc_pk_hex":
+				eventCovenantSignature.CovenantBtcPkHex = attribute.Value
+			case "covenant_unbonding_signature_hex":
+				eventCovenantSignature.CovenantUnbondingSignature = attribute.Value
+			case "staking_tx_hash":
+				eventCovenantSignature.StakingTxHash = attribute.Value
+			}
+		}
+		return eventCovenantSignature, nil
+	case BabylonBtcDelegationCreatedEventType:
+		var eventBtcDelegationCreated EventBtcDelegationCreated
+		for _, attribute := range event.Attributes {
+			switch attribute.Key {
+			case "staking_tx_hex":
+				eventBtcDelegationCreated.StakingTxHash = attribute.Value
+			}
+		}
+		return eventBtcDelegationCreated, nil
+	default:
+		return nil, fmt.Errorf("%w", common.ErrUnSupportedEventType)
+	}
 }
 
 // parseDynamicMessage dynamically parses the message based on its type.

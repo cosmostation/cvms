@@ -6,10 +6,12 @@ import (
 
 	"sync"
 
+	"github.com/cosmostation/cvms/internal/common"
 	"github.com/cosmostation/cvms/internal/common/api"
 	indexertypes "github.com/cosmostation/cvms/internal/common/indexer/types"
 	"github.com/cosmostation/cvms/internal/helper"
 	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/model"
+	"github.com/pkg/errors"
 )
 
 // NOTE: babylon covenant signature will be created at random block (When Delegation TX occurs)
@@ -59,38 +61,84 @@ func (idx *CovenantSignatureIndexer) batchSync(lastIndexPointerHeight, newIndexP
 			defer wg.Done()
 
 			backoffTime := time.Second * 1
-
-		RETRY:
-			blockHeight, blockTimestamp, txs, err := api.GetBlockAndTxs(idx.CommonClient, height)
+		RETRY1:
+			_, blockTimestamp, _, txs, _, _, err := api.GetBlock(idx.CommonClient, height)
+			if err != nil {
+				idx.Errorf("failed to get block by rpc, %s", err)
+				helper.ExponentialBackoff(&backoffTime)
+				goto RETRY1
+			}
 			if len(txs) <= 0 {
 				return
+			}
+
+		RETRY2:
+			txsEvents, _, err := api.GetBlockResults(idx.CommonClient, height)
+			if err != nil {
+				idx.Errorf("failed to get block results by rpc, %s", err)
+				helper.ExponentialBackoff(&backoffTime)
+				goto RETRY2
 			}
 
 			if height == endHeight {
 				endBlockTimestamp = blockTimestamp
 			}
 
-			covenantSigs, createBtcDelegations, err := ExtractBabylonCovenantSignature(txs)
-			if err != nil {
-				idx.Errorf("failed to extract resp.Body(), %s", err)
-				helper.ExponentialBackoff(&backoffTime)
-				goto RETRY
+			covenantSigEvents := make([]EventCovenantSignature, 0)
+			btcDelegationEvents := make([]EventBtcDelegationCreated, 0)
+
+			for _, event := range txsEvents {
+				supportEvent, err := ParseDynamicEvent(event)
+				if err != nil {
+					if errors.Is(err, common.ErrUnSupportedEventType) {
+						continue
+					} else {
+						idx.Errorf("failed to parse dynamic event, %s", err)
+						helper.ExponentialBackoff(&backoffTime)
+						goto RETRY2
+					}
+				}
+
+				if e, ok := supportEvent.(EventCovenantSignature); ok {
+					escapeBtcPk, err := DecodeEscapedJSONString(e.CovenantBtcPkHex)
+					if err != nil {
+						idx.Errorf("failed to decoding for escaped json, %s", err)
+						helper.ExponentialBackoff(&backoffTime)
+						goto RETRY2
+					}
+
+					escapeBtcTxStr, err := DecodeEscapedJSONString(e.StakingTxHash)
+					if err != nil {
+						idx.Errorf("failed to decoding for escaped json, %s", err)
+						helper.ExponentialBackoff(&backoffTime)
+						goto RETRY2
+					}
+
+					covenantSigEvents = append(covenantSigEvents, EventCovenantSignature{
+						CovenantBtcPkHex: escapeBtcPk,
+						StakingTxHash:    escapeBtcTxStr,
+					})
+				} else if e, ok := supportEvent.(EventBtcDelegationCreated); ok {
+					escapeHexStr, err := DecodeEscapedJSONString(e.StakingTxHash)
+					if err != nil {
+						idx.Errorf("failed to decoding for escaped json, %s", err)
+						helper.ExponentialBackoff(&backoffTime)
+						goto RETRY2
+					}
+					btcStakingTxHash, err := DecodeBTCStakingTxByHexStr(escapeHexStr)
+
+					btcDelegationEvents = append(btcDelegationEvents, EventBtcDelegationCreated{StakingTxHash: btcStakingTxHash})
+				}
 			}
 
 			var newBtcDelegations = make([]model.BabylonBtcDelegation, 0)
+			var newBcsList = make([]model.BabylonCovenantSignature, 0)
 
-			for _, delegateMsg := range createBtcDelegations {
-				btcStakingTxHash, err := DecodeBtcStakingTx(delegateMsg.StakingTx)
-				if err != nil {
-					idx.Errorf("failed to decode btc staking tx, %s", err)
-					helper.ExponentialBackoff(&backoffTime)
-					goto RETRY
-				}
-
+			for _, e := range btcDelegationEvents {
 				newBtcDelegation := model.BabylonBtcDelegation{
 					ChainInfoID:      idx.ChainInfoID,
-					Height:           blockHeight,
-					BTCStakingTxHash: btcStakingTxHash,
+					Height:           height,
+					BTCStakingTxHash: e.StakingTxHash,
 					Timestamp:        blockTimestamp,
 				}
 
@@ -102,22 +150,19 @@ func (idx *CovenantSignatureIndexer) batchSync(lastIndexPointerHeight, newIndexP
 				Success: true,
 			}
 
-			var newBcsList = make([]model.BabylonCovenantSignature, 0)
-
-			for _, sig := range covenantSigs {
-
+			for _, e := range covenantSigEvents {
 				// It's not yet clear if Committee members can change dynamically, we've added some temporary code to prevent panic
-				pkID, exists := idx.covenantCommitteeMap[sig.Pk]
+				pkID, exists := idx.covenantCommitteeMap[e.CovenantBtcPkHex]
 				if !exists {
-					idx.Errorf("Missing covenant committee entry for PK: %s", sig.Pk)
+					idx.Errorf("Missing covenant committee entry for PK: %s", e.CovenantBtcPkHex)
 					continue
 				}
 
 				newCovenantSignature := model.BabylonCovenantSignature{
 					ChainInfoID:      idx.ChainInfoID,
-					Height:           blockHeight,
+					Height:           height,
 					CovenantBtcPkID:  pkID,
-					BTCStakingTxHash: sig.StakingTxHash,
+					BTCStakingTxHash: e.StakingTxHash,
 					Timestamp:        blockTimestamp,
 				}
 
