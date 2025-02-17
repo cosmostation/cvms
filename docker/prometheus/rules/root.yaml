@@ -24,7 +24,7 @@ groups:
   - name: Root
     rules:
       - alert: FoundUnnormalPackageOps
-        expr: changes(cvms_root_processed_ops_total[3m]) < 1
+        expr: changes(cvms_root_processed_ops_total[30m]) < 1
         for: 1m
         labels:
           severity: warning

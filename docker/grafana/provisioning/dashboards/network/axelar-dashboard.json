@@ -1,0 +1,202 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 8,
+  "links": [],
+  "panels": [
+    {
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<!-- Main content -->\n<div style=\"display: flex; justify-content: space-between; align-items: center;\">\n  <!-- H2 with a link -->\n   <a href=\"https://github.com/cosmostation/cvms\" target=\"_blank\" style=\"text-decoration: none; color: inherit;\">\n    <h2 style=\"margin-right: 10px;\">Cosmos Validator Monitoring Service (CVMS) 🌌 🔭</h2>\n  </a> \n  <!-- \"Powered by Cosmostation\" on the right -->\n  <div style=\"display: flex; align-items: center;\">\n    <a href=\"https://cosmostation.io\" target=\"_blank\" style=\"text-decoration: none; color: inherit;\">\n        <span>Powered by Cosmostation </span>\n        <img src=\"https://raw.githubusercontent.com/cosmostation/chainlist/refs/heads/main/resource/cosmostation/cosmostation_color.svg\" alt=\"Logo\" style=\"height: 30px; margin-left: 5px;\">\n    </a>\n  </div>\n</div>\n\n<!-- Paragraph below the header -->\n<p>\n  The Cosmos Validator Monitoring Service (CVMS) is an open-source, integrated monitoring system designed for validators and network in the Cosmos app chain ecosystem.<br/>\n  This public dashboard is a playground for developers and beta release testing for CVMS.\n</p>\n<p>\n  <a href=\"https://github.com/cosmostation/cvms\" target=\"_blank\" style=\"text-decoration: none; color: #1E90FF;\">\n    👉 CVMS Github Link Here!\n  </a> \n  <a href=\"https://github.com/cosmostation/cvms/blob/release/docs/setup.md\" target=\"_blank\" style=\"text-decoration: none; color: #1E90FF;\">\n    👉 CVMS Setup Guide Here!!\n  </a> \n</p>",
+        "mode": "html"
+      },
+      "pluginVersion": "11.5.0",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-postgresql-datasource",
+        "uid": "cvms_indexer_db"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 6,
+        "x": 0,
+        "y": 4
+      },
+      "id": 11,
+      "options": {
+        "allData": {},
+        "config": {},
+        "data": [],
+        "imgFormat": "png",
+        "layout": {
+          "font": {
+            "family": "Inter, Helvetica, Arial, sans-serif"
+          },
+          "margin": {
+            "b": 0,
+            "l": 0,
+            "r": 0,
+            "t": 0
+          },
+          "title": {
+            "automargin": true
+          },
+          "xaxis": {
+            "automargin": true,
+            "autorange": true,
+            "type": "date"
+          },
+          "yaxis": {
+            "automargin": true,
+            "autorange": true
+          }
+        },
+        "onclick": "// Event handling\n/*\n// 'data', 'variables', 'options', 'utils', and 'event' are passed as arguments\n\ntry {\n  const { type: eventType, data: eventData } = event;\n  const { timeZone, dayjs, locationService, getTemplateSrv } = utils;\n\n  switch (eventType) {\n    case 'click':\n      console.log('Click event:', eventData.points);\n      break;\n    case 'select':\n      console.log('Selection event:', eventData.range);\n      break;\n    case 'zoom':\n      console.log('Zoom event:', eventData);\n      break;\n    default:\n      console.log('Unhandled event type:', eventType, eventData);\n  }\n\n  console.log('Current time zone:', timeZone);\n  console.log('From time:', dayjs(variables.__from).format());\n  console.log('To time:', dayjs(variables.__to).format());\n\n  // Example of using locationService\n  // locationService.partial({ 'var-example': 'test' }, true);\n\n} catch (error) {\n  console.error('Error in onclick handler:', error);\n}\n*/\n  ",
+        "resScale": 2,
+        "script": "let series = data.series[0];  \nlet height = series.fields[0];  \nlet moniker = series.fields[1];\nlet voted = series.fields[2];   \nlet poll_id = series.fields[3];\nlet vote_height = series.fields[4];\n\n// Get unique monikers and heights from the dataset for rows and columns\nlet uniqueHeights = [...new Set(height.values)].sort().reverse();    \nlet uniqueMonikers = [...new Set(moniker.values)].sort().reverse();  \n\n// Initialize the 2D array (zValues) for the heatmap, default to 0 (Inactive)\nlet zValues = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(0));\nlet hoverText = Array(uniqueMonikers.length).fill(null).map(() => Array(uniqueHeights.length).fill(\"\"));\n\nfor (let i = 0; i < height.values.length; i++) {\n  let rowIndex = uniqueMonikers.indexOf(moniker.values[i]);  \n  let colIndex = uniqueHeights.indexOf(height.values[i]);    \n  zValues[rowIndex][colIndex] = voted.values[i];  \n\n  // Add meta data\n  let statusMeaning = getStatusMeaning(voted.values[i]);  \n  let id = poll_id.values[i];\n  let vh = vote_height.values[i];\n  hoverText[rowIndex][colIndex] = `poll-id: ${id}<br>status: ${statusMeaning}<br>vote height: ${vh}`; \n}\n\n// Define a continuous color scale for smoother transitions\nlet colorScale = [\n  [0, 'rgba(217, 78, 78, 0.5)'], \n  [0.33, 'rgba(217, 78, 78, 0.5)'],\n  [0.66, 'rgba(234, 205, 78, 0.5)'],\n  [1, 'rgba(58, 174, 84, 0.5)']\n];\n\n\n// Return the heatmap configuration for Plotly\nreturn {\n  data: [{\n    z: zValues,               // 2D array of statuses (0, 1, 2, 3)\n    x: uniqueHeights,         // Block heights for X-axis\n    y: uniqueMonikers,        // Monikers for Y-axis\n    type: 'heatmap',          // Plotly heatmap type\n    colorscale: colorScale,   // Use only two colors for discrete values\n    showscale: false,         // Hide the color scale bar\n    zmin: 0,                  // Set the minimum value for z (status)\n    zmax: 3,                  // Set the maximum value for z (status)\n    xgap: 5,                  // Add gap between cells along the X-axis (adjust the value for bigger gaps)\n    ygap: 5,                   // Add gap between cells along the Y-axis (adjust the value for bigger gaps)    \n    text: hoverText,          // Set the hoverText for the heatmap\n    hoverinfo: 'text'         // Display the hoverText    \n  }],\n  layout: {\n    xaxis: {\n      type: 'category',\n      tickmode: 'linear',\n      showgrid: true,          // Ensure gridlines on X-axis\n      tickformat: '.0f',\n      tickangle: -45,          // Rotate labels for better readability\n    },\n    yaxis: {\n      tickmode: 'array',        // Use tickmode 'array' to manually set Y-axis labels\n      tickvals: uniqueMonikers, // Set tick values to all unique monikers\n      ticktext: uniqueMonikers, // Display all monikers as text on Y-axis\n      showgrid: true            // Ensure gridlines on Y-axis\n    },\n    margin: {\n      l: 200,  // Adjust margin for longer moniker names\n      t: 20,   // Reduce top margin\n      b: 120,  // Adjust bottom margin for X-axis labels\n    }\n  }\n};\n\n\nfunction getStatusMeaning(status) {\n  switch(status) {\n    case 0:\n      return 'DidNotVote';\n    case 1:\n      return 'FailedOnChain';\n    case 2:\n      return 'NotFound';\n    case 3:\n      return 'SucceededOnChain';\n  }\n}",
+        "syncTimeRange": false,
+        "timeCol": ""
+      },
+      "pluginVersion": "1.8.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "cvms_indexer_db"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "\nSELECT\n  t1.poll_start_height,\n  t2.verifier_address,\n  t1.status,\n  t1.chain_and_poll_id,\n  t1.poll_vote_height\nFROM\n  axelar_amplifier_verifier_${chain_id} t1\nJOIN\n  meta.verifier_info t2\n  ON t1.verifier_id = t2.id",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Amplifier Verifier Vote Status",
+      "transparent": true,
+      "type": "nline-plotlyjs-panel"
+    }
+  ],
+  "preload": false,
+  "refresh": "5s",
+  "schemaVersion": 40,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "axelar_dojo_1",
+          "value": "axelar_dojo_1"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "cvms_exporter_db"
+        },
+        "definition": "label_values(cvms_block_timestamp,table_chain_id)",
+        "includeAll": false,
+        "label": "Chain ID",
+        "name": "chain_id",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(cvms_block_timestamp,table_chain_id)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "axelar",
+          "value": "axelar"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "cvms_exporter_db"
+        },
+        "definition": "label_values(cvms_block_timestamp{table_chain_id=\"$chain_id\"},chain)",
+        "includeAll": false,
+        "label": "Chain",
+        "name": "chain",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(cvms_block_timestamp{table_chain_id=\"$chain_id\"},chain)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Axelar Dashboard",
+  "uid": "ded00lwbptwqoc",
+  "version": 7,
+  "weekStart": ""
+}

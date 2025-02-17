@@ -126,6 +126,7 @@ axelar-dojo-1:
     - uptime
     - axelar-evm
     - voteindexer
+    - axelar_amplifier_verifier
 axelar-testnet-lisbon-3:
   chain_name: axelar
   protocol_type: cosmos
@@ -139,6 +140,7 @@ axelar-testnet-lisbon-3:
     - uptime
     - axelar-evm
     - voteindexer
+    - axelar_amplifier_verifier
 band-laozi-testnet6:
   chain_name: band
   protocol_type: cosmos
@@ -840,7 +842,7 @@ neutron-1:
     - uptime
     - voteindexer
     - veindexer
-nillion:
+nillion-1:
   chain_name: nillion
   protocol_type: cosmos
   mainnet: true

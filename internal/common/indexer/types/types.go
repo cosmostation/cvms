@@ -27,6 +27,7 @@ const (
 
 // types for indexer packages
 type ValidatorIDMap map[string]int64
+type ValidatorAddressMap map[int64]string
 type MonikerIDMap map[int64]bool
 
 type LatestHeightCache struct {

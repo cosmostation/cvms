@@ -51,7 +51,6 @@ func Test_1_GetBTCLightClientData(t *testing.T) {
 			t.Logf("in %d height, got %s headers", h, bie.ToHeadersStringSlice())
 		}
 	}
-
 }
 
 func Test_2_BatchSync(t *testing.T) {
@@ -108,4 +107,28 @@ func Test_3_Start(t *testing.T) {
 
 	<-done
 	t.Log("Goroutine finished work")
+}
+
+func Test_4_ValidationLogic(t *testing.T) {
+	app := common.NewCommonApp(p)
+	app.SetAPIEndPoint(p.Endpoints.APIs[0])
+	app.SetRPCEndPoint(p.Endpoints.RPCs[0])
+
+	_, err := api.GetBabylonBTCLightClientParams(app.CommonClient)
+	assert.NoError(t, err)
+
+	testHeight := int64(261439)
+	expectedReporter := "bbn1mzghl5csl75wz86e70j6ggdll4huazgfmeucyx"
+	txsEvents, _, err := api.GetBlockResults(app.CommonClient, testHeight)
+	assert.NoError(t, err)
+
+	// NOTE: bieList means btc insert events list
+	bieList, err := filterBTCLightClientEvents(txsEvents)
+	assert.NoError(t, err)
+
+	for _, bie := range bieList {
+		t.Logf("len header: %d", len(bie.BTCHeaders))
+		t.Logf("in %d height, got %s headers", testHeight, bie.ToHeadersStringSlice())
+		assert.Equal(t, expectedReporter, bie.ReporterAddress)
+	}
 }

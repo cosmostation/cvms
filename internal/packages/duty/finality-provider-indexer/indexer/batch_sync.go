@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const finalitySigTimeout = 3
+
 // NOTE: in this package, the missed height means fp didn't broadcast the finality sig tx in height+1 block
 // for example, I didn't broadcast the tx at 100 block, that will make missed block for 99 height.
 func (idx *FinalityProviderIndexer) batchSync(lastIndexPointerHeight int64) (
@@ -22,7 +24,7 @@ func (idx *FinalityProviderIndexer) batchSync(lastIndexPointerHeight int64) (
 	// set starntHeight and endHeight for batch sync
 	// NOTE: end height will use latest height -1 for waiting latest vote status
 	startHeight := (lastIndexPointerHeight + 1)
-	endHeight := (idx.Lh.LatestHeight - 1)
+	endHeight := (idx.Lh.LatestHeight - finalitySigTimeout)
 	if startHeight > endHeight {
 		idx.Infof("no need to sync from %d height to %d height, so it'll skip the logic", startHeight, endHeight)
 		return lastIndexPointerHeight, nil

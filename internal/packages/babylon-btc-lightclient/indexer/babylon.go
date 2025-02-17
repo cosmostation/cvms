@@ -39,7 +39,7 @@ func filterBTCLightClientEvents(events []types.BlockEvent) ([]BTCInsertEvent, er
 					found = true
 				}
 
-				if attr.Key == "sender" && found {
+				if found && attr.Key == "sender" && reporter == "" {
 					reporter = attr.Value
 				}
 			}

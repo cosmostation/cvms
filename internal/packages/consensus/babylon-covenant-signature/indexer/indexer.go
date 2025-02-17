@@ -9,7 +9,6 @@ import (
 	"github.com/cosmostation/cvms/internal/common/indexer/model"
 	indexertypes "github.com/cosmostation/cvms/internal/common/indexer/types"
 	"github.com/cosmostation/cvms/internal/helper"
-
 	"github.com/cosmostation/cvms/internal/helper/db"
 	"github.com/cosmostation/cvms/internal/helper/healthcheck"
 	"github.com/cosmostation/cvms/internal/packages/consensus/babylon-covenant-signature/repository"

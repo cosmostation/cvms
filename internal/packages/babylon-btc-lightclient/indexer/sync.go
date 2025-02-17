@@ -131,7 +131,7 @@ func (idx *BTCLightClientIndexer) batchSync(lastIndexPoint int64) (
 		if err != nil {
 			// NOTE: fetch again validator_info list, actually already inserted the list by other indexer service
 			idx.FetchValidatorInfoList()
-			return lastIndexPoint, errors.Wrapf(err, "failed to insert new reporter info list: %v", newRepoterInfoList)
+			return lastIndexPoint, errors.Wrap(err, "failed to insert new reporter list")
 		}
 
 		// get already saved tendermint validator list for mapping validators ids

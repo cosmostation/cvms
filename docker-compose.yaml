@@ -96,6 +96,27 @@ services:
       - ./docker/postgres/schema:/docker-entrypoint-initdb.d/:ro
       - indexer-db-volume:/var/lib/postgresql/data
 
+  flyway:
+    image: flyway/flyway:11.3.1
+    container_name: flyway
+    profiles:
+      - migration
+    depends_on:
+      - postgres
+    command: ['migrate']
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://cvms-indexer-db:5432/cvms
+      - FLYWAY_USER=${DB_USER:-cvms}
+      - FLYWAY_PASSWORD=${DB_PASSWORD:-mysecretpassword}
+      - FLYWAY_LOCATIONS=filesystem:/flyway/sql
+      - FLYWAY_SCHEMAS=public,meta # Migrate both public and meta schemas
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_ON_MIGRATE=true
+    volumes:
+      - ./docker/flyway:/flyway/sql
+    networks:
+      - cvms-net
+
   grafana:
     image: grafana/grafana:latest
     container_name: cvms-grafana
@@ -109,6 +130,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=${GRAFANA_HOME_DASHBOARD}
+      - GF_SECURITY_EDITORS_CAN_ADMIN=true
       - GF_USERS_DEFAULT_THEME=dark
       - GF_LOG_MODE=console
       - GF_LOG_LEVEL=critical

@@ -74,3 +74,18 @@ CREATE TABLE
     )
 PARTITION BY
     LIST ("chain_info_id");
+
+
+CREATE TABLE
+    -- not decided table name 
+    IF NOT EXISTS "meta"."verifier_info" (
+        "id" BIGINT GENERATED ALWAYS AS IDENTITY,
+        "chain_info_id" INT NOT NULL,
+        "verifier_address" TEXT NOT NULL,
+        "moniker" TEXT NOT NULL, 
+        CONSTRAINT fk_chain_info_id FOREIGN KEY (chain_info_id) REFERENCES meta.chain_info(id) ON DELETE CASCADE ON UPDATE CASCADE,
+        PRIMARY KEY ("id", "chain_info_id"),
+        CONSTRAINT uniq_verifier_by_chain UNIQUE (chain_info_id, verifier_address)
+    )
+PARTITION BY
+    LIST ("chain_info_id");    
