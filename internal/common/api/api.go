@@ -335,7 +335,6 @@ func GetBlockAndTxs(c common.CommonClient, height int64) (
 	if err != nil {
 		return 0, time.Time{}, nil, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
 	}
-<<<<<<< HEAD
 
 	if resp.StatusCode() == http.StatusBadRequest {
 		var result types.CosmosErrorResponse
@@ -351,8 +350,6 @@ func GetBlockAndTxs(c common.CommonClient, height int64) (
 		}
 	}
 
-=======
->>>>>>> develop
 	if resp.StatusCode() != http.StatusOK {
 		return 0, time.Time{}, nil, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
 	}
