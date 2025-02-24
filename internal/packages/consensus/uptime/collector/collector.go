@@ -25,6 +25,7 @@ const (
 	JailedMetricName             = "jailed"
 	SignedBlocksWindowMetricName = "signed_blocks_window"
 	MinSignedPerWindowMetricName = "min_signed_per_window"
+	LastCCVUpdateMetricName      = "last_ccv_update"
 )
 
 func Start(p common.Packager) error {
@@ -96,6 +97,12 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		Namespace:   common.Namespace,
 		Subsystem:   Subsystem,
 		Name:        MinSignedPerWindowMetricName,
+		ConstLabels: packageLabels,
+	})
+	lastCCVUpdateMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        LastCCVUpdateMetricName,
 		ConstLabels: packageLabels,
 	})
 
@@ -184,6 +191,11 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		// update metrics by each chain
 		signedBlocksWindowMetric.Set(status.SignedBlocksWindow)
 		minSignedPerWindowMetric.Set(status.MinSignedPerWindow)
+
+		// Update consumer metrics
+		if status.ConsumerUptimeStatus != nil {
+			lastCCVUpdateMetric.Set(float64(status.ConsumerUptimeStatus.LastCCVUpdate))
+		}
 
 		exporter.Infof("updated metrics successfully and going to sleep %s ...", SubsystemSleep.String())
 

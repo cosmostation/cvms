@@ -3,7 +3,10 @@ package api
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"sync"
@@ -299,4 +302,47 @@ func sliceStakingValidatorByVP(stakingValidators []commontypes.CosmosStakingVali
 		return tokensI > tokensJ // Sort in descending order
 	})
 	return stakingValidators[:totalConsensusValidators]
+}
+
+func getLastCCVUpdate(c common.CommonClient) (uint64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	requester := c.APIClient.R().SetContext(ctx)
+	queryParams := url.Values{}
+	queryParams.Add("query", "ccv_packet.valset_update_id>1")
+	queryParams.Add("order_by", "ORDER_BY_DESC")
+	queryParams.Add("page", "1")
+	queryParams.Add("limit", "1")
+	endpoint := "/cosmos/tx/v1beta1/txs?" + queryParams.Encode()
+	c.Infof("endpoint: %s", endpoint)
+	resp, err := requester.Get(endpoint)
+	if err != nil {
+		return 0, errors.Cause(err)
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return 0, errors.Errorf("api error: got %d code from %s", resp.StatusCode(), resp.Request.URL)
+	}
+
+	var result struct {
+		TxResponses []struct {
+			Height string `json:"height"`
+		} `json:"tx_responses"`
+	}
+
+	if err := json.Unmarshal(resp.Body(), &result); err != nil {
+		return 0, errors.Cause(err)
+	}
+
+	if len(result.TxResponses) == 0 {
+		c.Warnf("No CCV update found in consumer chain")
+		return 0, nil
+	}
+
+	height, err := strconv.ParseUint(result.TxResponses[0].Height, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse height from tx (%+v): %w", result, err)
+	}
+
+	return height, nil
 }

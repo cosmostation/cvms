@@ -1,6 +1,13 @@
 groups:
   - name: UptimePackage
     rules:
+      # - alert: UptimeNoCCVUpdate
+      #   expr: |
+      #       cvms_block_height - on(chain_id) cvms_uptime_last_ccv_update > 5000
+      #   labels:
+      #     severity: critical
+      #   annotations:
+      #     summary: The chain has not received a validator set update in the last 5000 blocks.
       # - alert: IncreasingMissCounterOver30%During1h
       #   expr: |
       #     # 30mins ago, the validator is unjailed. but got jailed 

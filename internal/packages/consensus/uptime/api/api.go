@@ -85,16 +85,24 @@ func GetConsumserUptimeStatus(exporter *common.Exporter, chainID string) (types.
 		return types.CommonUptimeStatus{}, errors.Cause(err)
 	}
 	exporter.Debugf("got total consumer validator uptime: %d", len(validatorUptimeStatus))
-
 	// 5. get on-chain slashing parameter
 	signedBlocksWindow, minSignedPerWindow, err := getUptimeParams(consumerClient, exporter.ChainName)
 	if err != nil {
 		return types.CommonUptimeStatus{}, errors.Cause(err)
 	}
 
+	// 6. get consumer channel uptime status
+	consumerUptimeStatus := &types.ConsumerUptimeStatus{}
+	channelStatus, err := getLastCCVUpdate(consumerClient)
+	if err != nil {
+		return types.CommonUptimeStatus{}, errors.Wrap(err, "failed to get CCV channel status")
+	}
+	consumerUptimeStatus.LastCCVUpdate = channelStatus
+
 	return types.CommonUptimeStatus{
-		SignedBlocksWindow: signedBlocksWindow,
-		MinSignedPerWindow: minSignedPerWindow,
-		Validators:         validatorUptimeStatus,
+		SignedBlocksWindow:   signedBlocksWindow,
+		MinSignedPerWindow:   minSignedPerWindow,
+		Validators:           validatorUptimeStatus,
+		ConsumerUptimeStatus: consumerUptimeStatus,
 	}, nil
 }
