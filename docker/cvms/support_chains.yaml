@@ -175,15 +175,16 @@ bbn-test-5:
     denom: ubbn
     decimal: 6
   packages:
-    # - block
-    # - upgrade
-    # - uptime
-    # - voteindexer
-    # - babylon-checkpoint
-    # - babylon-btc-lightclient
+    - block
+    - upgrade
+    - uptime
+    - voteindexer
+    - babylon-checkpoint
+    - babylon-btc-lightclient
     - babylon-covenant-committee
-    # - babylon-finality-provider-indexer
-    # - babylon-finality-provider-uptime
+    - babylon-finality-provider-indexer
+    - babylon-finality-provider-uptime
+    - babylon-btc-delegations
 bitcanna-1:
   chain_name: bitcanna
   protocol_type: cosmos

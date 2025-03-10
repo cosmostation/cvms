@@ -97,3 +97,17 @@ func ParserCovenantCommiteeParams(resp []byte) ([]string, error) {
 
 	return newCovenantCommitee, nil
 }
+
+func ParserBTCDelegations(resp []byte) (int64, error) {
+	var result types.BTCDelegationsResponse
+	err := json.Unmarshal(resp, &result)
+	if err != nil {
+		return 0, err
+	}
+
+	delegationCount, err := strconv.ParseInt(result.Pagination.Total, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return delegationCount, nil
+}

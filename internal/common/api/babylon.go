@@ -257,3 +257,91 @@ func GetBalbylonCovenantCommiteeParams(c common.CommonClient) ([]string, error) 
 
 	return covenantCommittee, nil
 }
+
+var delegationStatus = []types.BTCDelegationStatus{types.PENDING, types.VERIFIED, types.ACTIVE, types.UNBONDED, types.EXPIRED}
+
+type delegationResult struct {
+	status string
+	count  int64
+}
+
+func GetBabylonBTCDelegations(c common.CommonClient) (map[string]int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	requester := c.APIClient.R().SetContext(ctx)
+
+	ch := make(chan helper.Result)
+	delegationResults := make([]delegationResult, 0)
+	wg := sync.WaitGroup{}
+
+	for _, ds := range delegationStatus {
+		status := ds
+		wg.Add(1)
+
+		go func(ch chan helper.Result, status types.BTCDelegationStatus) {
+			defer helper.HandleOutOfNilResponse(c.Entry)
+			defer wg.Done()
+
+			resp, err := requester.Get(types.BabylonBTCDelegationQuery(ds))
+			if err != nil {
+				if resp == nil {
+					c.Errorln("[panic] passed resp.Time() nil point err")
+					ch <- helper.Result{Item: nil, Success: false}
+					return
+				}
+				c.Errorf("api error: %s", err)
+				ch <- helper.Result{Item: nil, Success: false}
+				return
+			}
+
+			if resp.StatusCode() != http.StatusOK {
+				c.Errorf("api error: %d code from %s", resp.StatusCode(), resp.Request.URL)
+				ch <- helper.Result{Item: nil, Success: false}
+				return
+			}
+
+			count, err := parser.ParserBTCDelegations(resp.Body())
+			if err != nil {
+				c.Errorf("parsing failed: %s", err)
+				ch <- helper.Result{Item: nil, Success: false}
+				return
+			}
+
+			ch <- helper.Result{
+				Success: true,
+				Item: delegationResult{
+					status: status.String(),
+					count:  count,
+				},
+			}
+		}(ch, status)
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	errorCount := 0
+	for r := range ch {
+		if r.Success {
+			delegationResults = append(delegationResults, r.Item.(delegationResult))
+			continue
+		}
+		errorCount++
+	}
+
+	if errorCount > 0 {
+		c.Errorf("current errors count: %d", errorCount)
+		return nil, common.ErrFailedHttpRequest
+	}
+
+	status := make(map[string]int64)
+	for _, item := range delegationResults {
+		status[item.status] = item.count
+	}
+
+	return status, nil
+}

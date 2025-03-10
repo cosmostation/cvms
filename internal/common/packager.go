@@ -35,7 +35,7 @@ var (
 		"axelar-evm", "eventnonce", "oracle", "yoda",
 
 		// Babylon
-		"babylon-finality-provider-uptime",
+		"babylon-finality-provider-uptime", "babylon-btc-delegations",
 	}
 )
 

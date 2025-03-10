@@ -40,3 +40,16 @@ func Test_Babylon_GetFP(t *testing.T) {
 	}
 
 }
+
+func Test_Babylon_GetBTCDelegations(t *testing.T) {
+	commonApp := common.NewCommonApp(p)
+	commonApp.SetAPIEndPoint("https://lcd-office.cosmostation.io/babylon-testnet")
+
+	delegations, err := GetBabylonBTCDelegations(commonApp.CommonClient)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, delegations)
+
+	for status, count := range delegations {
+		t.Logf("found %d in %s", count, status)
+	}
+}
