@@ -78,6 +78,22 @@ func (repo *MetaRepository) InsertCovenantCommitteeInfoList(ccInfoList []model.C
 	return nil
 }
 
+func (repo *MetaRepository) UpsertCovenantCommitteeInfoList(ccInfoList []model.CovenantCommitteeInfo) error {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	_, err := repo.NewInsert().
+		Model(&ccInfoList).
+		On("CONFLICT (chain_info_id, covenant_btc_pk) DO UPDATE").
+		Set("name = EXCLUDED.name").
+		Exec(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed to upsert covenant committee info list: %v", ccInfoList)
+	}
+
+	return nil
+}
+
 func (repo *MetaRepository) GetCovenantCommitteeInfoListByMonikers(chainInfoID int64, monikers []string) ([]model.CovenantCommitteeInfo, error) {
 	ctx := context.Background()
 	defer ctx.Done()

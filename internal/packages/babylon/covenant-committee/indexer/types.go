@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -23,6 +22,14 @@ var (
 		return fmt.Sprintf("/cosmos/tx/v1beta1/txs/block/%d?pagination.limit=1", blockHeight)
 	}
 )
+
+// Struct for mapping names from the Babylon official covenant committee list.
+type CovenantCommitteeListFromRemoteRepo struct {
+	CovenantCommittee []struct {
+		Name string `json:"name"`
+		Pk   string `json:"pk"`
+	} `json:"covenant_committee"`
+}
 
 type MsgCovenantSignature struct {
 	Type                    string   `json:"@type"`
@@ -154,25 +161,4 @@ type CovenantSignature struct {
 	BTCStakingTxHash           string
 	CovenantUnbondingSignature string
 	Timestamp                  time.Time
-}
-
-// TODO: I think this types should move into common cosmos types
-type CosmosTx struct {
-	Body struct {
-		Messages []json.RawMessage `json:"messages"`
-	} `json:"body"`
-	AuthInfo   interface{} `json:"-"`
-	Signatures []string    `json:"-"`
-}
-
-type BlockTxsResponse struct {
-	Txs   []CosmosTx `json:"txs"`
-	Block struct {
-		Header struct {
-			ChainID         string    `json:"chain_id"`
-			Height          string    `json:"height"`
-			Time            time.Time `json:"time"`
-			ProposerAddress string    `json:"proposer_address"`
-		} `json:"header"`
-	} `json:"block"`
 }

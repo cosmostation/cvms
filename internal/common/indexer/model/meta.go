@@ -46,6 +46,7 @@ type CovenantCommitteeInfo struct {
 	bun.BaseModel `bun:"table:meta.covenant_committee_info"`
 	ID            int64  `bun:"id,pk,autoincrement"`
 	ChainInfoID   int64  `bun:"chain_info_id,pk,notnull"`
+	Name          string `bun:"name,notnull"`
 	CovenantBtcPk string `bun:"covenant_btc_pk"`
 }
 
