@@ -22,8 +22,13 @@ const (
 	UnHealthSleep  = 10 * time.Second
 
 	MissedVotesCounterMetricName = "missed_votes_counter"
+	VotingPowerMetricName        = "voting_power"
 	SignedVotesWindowMetricName  = "signed_votes_window"
 	MinSignedPerWindowMetricName = "min_signed_per_window"
+
+	LastFinalizedBlockMissingVotesCountMetricName = "last_finalized_block_missing_votes_count"
+	LastFinalizedBlockMissingVPMetricName         = "last_finalized_block_missing_vp"
+	LastFinalizedBlockFinalizedVPMetricName       = "last_finalized_block_finalized_vp"
 )
 
 func Start(p common.Packager) error {
@@ -62,6 +67,19 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		common.ActiveLabel,
 	})
 
+	vpMetric := p.Factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        VotingPowerMetricName,
+		ConstLabels: packageLabels,
+	}, []string{
+		common.MonikerLabel,
+		common.OrchestratorAddressLabel,
+		common.BTCPKLabel,
+		common.JailedLabel,
+		common.ActiveLabel,
+	})
+
 	// metrics for each chain
 	signedBlocksWindowMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
 		Namespace:   common.Namespace,
@@ -73,6 +91,25 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		Namespace:   common.Namespace,
 		Subsystem:   Subsystem,
 		Name:        MinSignedPerWindowMetricName,
+		ConstLabels: packageLabels,
+	})
+
+	lastFinalizedBlockMissingVotesCountMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        LastFinalizedBlockMissingVotesCountMetricName,
+		ConstLabels: packageLabels,
+	})
+	lastFinalizedBlockMissingVPMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        LastFinalizedBlockMissingVPMetricName,
+		ConstLabels: packageLabels,
+	})
+	lastFinalizedBlockFinalizedVPMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        LastFinalizedBlockFinalizedVPMetricName,
 		ConstLabels: packageLabels,
 	})
 
@@ -128,6 +165,18 @@ func loop(exporter *common.Exporter, p common.Packager) {
 						common.ActiveLabel:              item.Active,
 					}).
 					Set(float64(item.MissedBlockCounter))
+
+				if item.VotingPower != 0 {
+					vpMetric.
+						With(prometheus.Labels{
+							common.MonikerLabel:             item.Moniker,
+							common.BTCPKLabel:               item.BTCPK,
+							common.OrchestratorAddressLabel: item.Address,
+							common.JailedLabel:              item.Jailed,
+							common.ActiveLabel:              item.Active,
+						}).
+						Set(item.VotingPower)
+				}
 			}
 		} else {
 			for _, item := range status.FinalityProvidersStatus {
@@ -141,6 +190,18 @@ func loop(exporter *common.Exporter, p common.Packager) {
 							common.ActiveLabel:              item.Active,
 						}).
 						Set(float64(item.MissedBlockCounter))
+
+					if item.VotingPower != 0 {
+						vpMetric.
+							With(prometheus.Labels{
+								common.MonikerLabel:             item.Moniker,
+								common.BTCPKLabel:               item.BTCPK,
+								common.OrchestratorAddressLabel: item.Address,
+								common.JailedLabel:              item.Jailed,
+								common.ActiveLabel:              item.Active,
+							}).
+							Set(item.VotingPower)
+					}
 				}
 			}
 		}
@@ -148,6 +209,11 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		// update metrics by each chain
 		signedBlocksWindowMetric.Set(status.SignedBlocksWindow)
 		minSignedPerWindowMetric.Set(status.MinSignedPerWindow)
+
+		// Add a new logic for providing last finalized block status
+		lastFinalizedBlockMissingVotesCountMetric.Set(status.LastFinalizedBlockInfo.MissingVotes)
+		lastFinalizedBlockMissingVPMetric.Set(status.LastFinalizedBlockInfo.MissingVP)
+		lastFinalizedBlockFinalizedVPMetric.Set(status.LastFinalizedBlockInfo.FinalizedVP)
 
 		exporter.Infof("updated metrics successfully and going to sleep %s ...", SubsystemSleep.String())
 

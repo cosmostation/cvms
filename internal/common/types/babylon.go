@@ -56,7 +56,9 @@ type FinalityProviderInfo struct {
 	Address string `json:"addr"`
 	BTCPK   string `json:"btc_pk"`
 	Jailed  bool   `json:"jailed"`
-	Active  bool
+	// injected
+	Active      bool
+	VotingPower float64
 }
 
 var BabylonFinalityProvidersQueryPath = func(height int64) string {
@@ -166,4 +168,16 @@ const (
 type BTCDelegationsResponse struct {
 	BTCDelegations []interface{} `json:"btc_delegations"`
 	Pagination     Pagination    `json:"pagination"`
+}
+
+var BabylonLastFinalizedBlockLimitQueryPath = "/babylon/finality/v1/blocks?status=1&pagination.limit=1&pagination.reverse=true"
+
+type LastFinalityBlockResponse struct {
+	Blocks []struct {
+		Height    string `json:"height"`
+		AppHash   string `json:"app_hash"`
+		Finalized bool   `json:"finalized"`
+	} `json:"blocks"`
+
+	Pagination Pagination `json:"pagination"`
 }

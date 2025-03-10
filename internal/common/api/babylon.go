@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -112,6 +113,8 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 		BTCPK := item.BTCPK
 		jailed := item.Jailed
 		active := item.Active
+		vp := item.VotingPower
+
 		queryPath := types.BabylonFinalityProviderSigninInfoQueryPath(item.BTCPK)
 		go func(ch chan helper.Result) {
 			defer helper.HandleOutOfNilResponse(c.Entry)
@@ -127,6 +130,7 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 						MissedBlockCounter: 0,
 						Jailed:             strconv.FormatBool(jailed),
 						Active:             strconv.FormatBool(active),
+						VotingPower:        0,
 					}}
 
 				return
@@ -165,6 +169,7 @@ func GetFinalityProviderUptime(c common.CommonClient, fpInfoList []types.Finalit
 					MissedBlockCounter: missedBlockCounter,
 					Jailed:             strconv.FormatBool(jailed),
 					Active:             strconv.FormatBool(active),
+					VotingPower:        vp,
 				}}
 		}(ch)
 		time.Sleep(10 * time.Millisecond)
@@ -344,4 +349,43 @@ func GetBabylonBTCDelegations(c common.CommonClient) (map[string]int64, error) {
 	}
 
 	return status, nil
+}
+
+func GetLastFinalizedBlockHeight(c common.CommonClient) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), common.Timeout)
+	defer cancel()
+
+	requester := c.APIClient.R().SetContext(ctx)
+	resp, err := requester.Get(types.BabylonLastFinalizedBlockLimitQueryPath)
+	if err != nil {
+		return 0, errors.Errorf("rpc call is failed from %s: %s", resp.Request.URL, err)
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return 0, errors.Errorf("stanage status code from %s: [%d]", resp.Request.URL, resp.StatusCode())
+	}
+
+	var result types.LastFinalityBlockResponse
+	err = json.Unmarshal(resp.Body(), &result)
+	if err != nil {
+		return 0, err
+	}
+
+	// check finalized and return last finalized height
+	for idx, b := range result.Blocks {
+		if !b.Finalized {
+			return 0, errors.New("unxpected finalized block")
+		}
+
+		lastFinalizedHeight, err := strconv.ParseInt(b.Height, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		if idx == 0 {
+			return lastFinalizedHeight, nil
+		}
+	}
+
+	return 0, errors.New("unxpected finalized block")
 }
