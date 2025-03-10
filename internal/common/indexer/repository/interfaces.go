@@ -50,7 +50,7 @@ type IFinalityProviderInfoRepository interface {
 type ICovenantCommitteeInfoRepository interface {
 	CreateCovenantCommitteeInfoPartitionTableByChainID(chainID string) error
 	GetCovenantCommitteeInfoListByChainInfoID(chainInfoID int64) (fpInfoList []model.CovenantCommitteeInfo, err error)
-	InsertCovenantCommitteeInfoList([]model.CovenantCommitteeInfo) error
+	UpsertCovenantCommitteeInfoList([]model.CovenantCommitteeInfo) error
 	GetCovenantCommitteeInfoListByMonikers(chainInfoID int64, monikers []string) ([]model.CovenantCommitteeInfo, error)
 }
 

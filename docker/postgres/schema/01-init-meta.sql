@@ -68,6 +68,7 @@ CREATE TABLE
         "id" BIGINT GENERATED ALWAYS AS IDENTITY,
         "chain_info_id" INT NOT NULL,
         "covenant_btc_pk" VARCHAR(64) NOT NULL,
+        "name" VARCHAR(255) NOT NULL,
         CONSTRAINT fk_chain_info_id FOREIGN KEY (chain_info_id) REFERENCES meta.chain_info(id) ON DELETE CASCADE ON UPDATE CASCADE,
         PRIMARY KEY ("id", "chain_info_id"),
         CONSTRAINT uniq_covenant_btc_pk_by_chain UNIQUE (chain_info_id, covenant_btc_pk)
