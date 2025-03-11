@@ -14,6 +14,11 @@ const (
 	//RPC event type name
 	BabylonCovenantSignatureReceivedEventType = "babylon.btcstaking.v1.EventCovenantSignatureReceived"
 	BabylonBtcDelegationCreatedEventType      = "babylon.btcstaking.v1.EventBTCDelegationCreated"
+
+	//Babylon official remote assets
+	//https://github.com/babylonlabs-io/networks
+	BabylonCovenantCommitteeMonikerFromMainnet = "" // TODO: Wait runching babylon mainnet...
+	BabylonCovenantCommitteeMonikerFromTestnet = "https://raw.githubusercontent.com/babylonlabs-io/networks/60e30f437b155b6027f43636aee729dc2d964e37/bbn-test-5/covenant-committee.json"
 )
 
 var (

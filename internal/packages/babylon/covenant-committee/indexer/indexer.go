@@ -3,6 +3,8 @@ package indexer
 import (
 	"database/sql"
 	"encoding/json"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/cosmostation/cvms/internal/common"
@@ -72,29 +74,19 @@ func (idx *CovenantSignatureIndexer) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get covenant committee params")
 	}
-	// request covenant mapping name
-	remoteCCNameList, err := testGetCovenantComitteeName()
-	if err != nil {
-		return errors.Wrap(err, "failed to get covenant committee params")
-	}
+	// request remote covenant mapping name
+	remoteCCMonikerMap := idx.getCovenantComitteeMoniker(idx.Mainnet)
 
 	for _, pk := range covenantCommittee {
-		comitteeName := ""
-		for _, c := range remoteCCNameList.CovenantCommittee {
-			if c.Pk == pk {
-				comitteeName = c.Name
-				break
-			}
-		}
-
-		if comitteeName == "" {
-			comitteeName = "Unknown"
+		moniker := "Unknown"
+		if value, ok := remoteCCMonikerMap[pk]; ok {
+			moniker = value
 		}
 
 		newCovenantCommitteeInfoList = append(newCovenantCommitteeInfoList, model.CovenantCommitteeInfo{
 			ChainInfoID:   idx.ChainInfoID,
 			CovenantBtcPk: pk,
-			Name:          comitteeName,
+			Moniker:       moniker,
 		})
 	}
 
@@ -238,53 +230,40 @@ func (idx *CovenantSignatureIndexer) FetchValidatorInfoList() error {
 	return nil
 }
 
-func testGetCovenantComitteeName() (CovenantCommitteeListFromRemoteRepo, error) {
-	rawJson := []byte(`{
-    "covenant_committee": [
-        {
-        "name": "Babylon Labs",
-        "pk": "fa9d882d45f4060bdb8042183828cd87544f1ea997380e586cab77d5fd698737"
-        },
-        {
-        "name": "Babylon Labs",
-        "pk": "0aee0509b16db71c999238a4827db945526859b13c95487ab46725357c9a9f25"
-        },
-        {
-        "name": "Babylon Labs",
-        "pk": "17921cf156ccb4e73d428f996ed11b245313e37e27c978ac4d2cc21eca4672e4"
-        },
-        {
-        "name": "Cubist",
-        "pk": "113c3a32a9d320b72190a04a020a0db3976ef36972673258e9a38a364f3dc3b0"
-        },
-        {
-        "name": "Informal Systems",
-        "pk": "79a71ffd71c503ef2e2f91bccfc8fcda7946f4653cef0d9f3dde20795ef3b9f0"
-        },
-        {
-        "name": "Zellic",
-        "pk": "3bb93dfc8b61887d771f3630e9a63e97cbafcfcc78556a474df83a31a0ef899c"
-        },
-        {
-        "name": "RockX",
-        "pk": "d21faf78c6751a0d38e6bd8028b907ff07e9a869a43fc837d6b3f8dff6119a36"
-        },
-        {
-        "name": "AltLayer",
-        "pk": "f5199efae3f28bb82476163a7e458c7ad445d9bffb0682d10d3bdb2cb41f8e8e"
-        },
-        {
-        "name": "CoinSummer Labs",
-        "pk": "40afaf47c4ffa56de86410d8e47baa2bb6f04b604f4ea24323737ddc3fe092df"
-        }
-    ]
-}`)
-	var covenantCommiteeNameList CovenantCommitteeListFromRemoteRepo
-
-	err := json.Unmarshal(rawJson, &covenantCommiteeNameList)
-	if err != nil {
-		return CovenantCommitteeListFromRemoteRepo{}, err
+func (idx *CovenantSignatureIndexer) getCovenantComitteeMoniker(mainnet bool) map[string]string {
+	var resp *http.Response
+	var err error
+	if mainnet {
+		resp, err = http.Get(BabylonCovenantCommitteeMonikerFromMainnet)
+	} else {
+		resp, err = http.Get(BabylonCovenantCommitteeMonikerFromTestnet)
 	}
 
-	return covenantCommiteeNameList, nil
+	if err != nil {
+		idx.Infof("failed to fetch remove covenant committee: %s", err)
+		return map[string]string{}
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		idx.Infof("failed to fetch remove covenant committee JSON: %d", resp.StatusCode)
+		return map[string]string{}
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		idx.Infof("failed to read remote covenant committee moniker JSON: %s", err)
+		return nil
+	}
+
+	var remoteCCMonikerMap map[string]string
+
+	err = json.Unmarshal(body, &remoteCCMonikerMap)
+	if err != nil {
+		idx.Infof("failed to unmarshal Json: %d", resp.StatusCode)
+		return map[string]string{}
+	}
+
+	return remoteCCMonikerMap
 }
