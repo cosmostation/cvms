@@ -85,7 +85,7 @@ func (repo *MetaRepository) UpsertCovenantCommitteeInfoList(ccInfoList []model.C
 	_, err := repo.NewInsert().
 		Model(&ccInfoList).
 		On("CONFLICT (chain_info_id, covenant_btc_pk) DO UPDATE").
-		Set("name = EXCLUDED.name").
+		Set("moniker = EXCLUDED.moniker").
 		Exec(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to upsert covenant committee info list: %v", ccInfoList)
