@@ -34,8 +34,16 @@ func GetFinalityProviderUptime(exporter *common.Exporter) (types.BabylonFinality
 
 	exporter.Debugf("got active finality providers: %d", len(activeProviders))
 
+	fpInfoList, jailedCnt := addActiveStatus(activeProviders, finalityProviderInfos)
+	fpTotal := types.FinalityProviderTotal{
+		Active:   len(activeProviders),
+		Inactive: len(finalityProviderInfos) - len(activeProviders),
+		Jailed:   jailedCnt,
+		Unjailed: len(finalityProviderInfos) - jailedCnt,
+	}
+
 	// 5. get lity providers' uptime status
-	finalityProviderUptimeStatus, err := commonapi.GetFinalityProviderUptime(exporter.CommonClient, addActiveStatus(activeProviders, finalityProviderInfos))
+	finalityProviderUptimeStatus, err := commonapi.GetFinalityProviderUptime(exporter.CommonClient, fpInfoList)
 	if err != nil {
 		return types.BabylonFinalityProviderUptimeStatues{}, errors.Wrap(err, "failed to get babylon finality providers uptime")
 	}
@@ -72,17 +80,23 @@ func GetFinalityProviderUptime(exporter *common.Exporter) (types.BabylonFinality
 		MinSignedPerWindow:      minSignedPerWindow,
 		FinalityProvidersStatus: finalityProviderUptimeStatus,
 		LastFinalizedBlockInfo:  LastFinalizedBlockInfo,
+		FinalityProviderTotal:   fpTotal,
 	}, nil
 }
 
-func addActiveStatus(activeProviders []commontypes.FinalityProvider, finalityProviderInfos []commontypes.FinalityProviderInfo) []commontypes.FinalityProviderInfo {
+func addActiveStatus(activeProviders []commontypes.FinalityProvider, finalityProviderInfos []commontypes.FinalityProviderInfo) ([]commontypes.FinalityProviderInfo, int) {
 	activeFpMap := make(map[string]commontypes.FinalityProvider, len(activeProviders))
 	for _, fp := range activeProviders {
 		activeFpMap[fp.BtcPkHex] = fp
 	}
 
+	jailedCnt := 0
 	// Modify the original slice using index-based iteration
 	for i := range finalityProviderInfos {
+		if finalityProviderInfos[i].Jailed {
+			jailedCnt++
+		}
+
 		fp, exist := activeFpMap[finalityProviderInfos[i].BTCPK]
 		if exist {
 			// NOTE: fp.VotingPower must will be integer, so no need to check error
@@ -92,7 +106,7 @@ func addActiveStatus(activeProviders []commontypes.FinalityProvider, finalityPro
 		}
 	}
 
-	return finalityProviderInfos
+	return finalityProviderInfos, jailedCnt
 }
 
 func getLastFinalizedBlockInfo(votes []string, fps []commontypes.FinalityProvider) types.LastFinalizedBlockInfo {

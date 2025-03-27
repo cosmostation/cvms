@@ -29,6 +29,8 @@ const (
 	LastFinalizedBlockMissingVotesCountMetricName = "last_finalized_block_missing_votes_count"
 	LastFinalizedBlockMissingVPMetricName         = "last_finalized_block_missing_vp"
 	LastFinalizedBlockFinalizedVPMetricName       = "last_finalized_block_finalized_vp"
+
+	METRIC_NAME_FINALITY_PROVIDERS_TOTAL = "finality_providers_total"
 )
 
 func Start(p common.Packager) error {
@@ -113,6 +115,15 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		ConstLabels: packageLabels,
 	})
 
+	fpTotalMetric := p.Factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        METRIC_NAME_FINALITY_PROVIDERS_TOTAL,
+		ConstLabels: packageLabels,
+	}, []string{
+		common.StatusLabel,
+	})
+
 	isUnhealth := false
 	for {
 		// node health check
@@ -178,6 +189,11 @@ func loop(exporter *common.Exporter, p common.Packager) {
 						Set(item.VotingPower)
 				}
 			}
+
+			fpTotalMetric.With(prometheus.Labels{common.StatusLabel: "active"}).Set(float64(status.FinalityProviderTotal.Active))
+			fpTotalMetric.With(prometheus.Labels{common.StatusLabel: "inactive"}).Set(float64(status.FinalityProviderTotal.Inactive))
+			fpTotalMetric.With(prometheus.Labels{common.StatusLabel: "jailed"}).Set(float64(status.FinalityProviderTotal.Jailed))
+			fpTotalMetric.With(prometheus.Labels{common.StatusLabel: "unjailed"}).Set(float64(status.FinalityProviderTotal.Unjailed))
 		} else {
 			for _, item := range status.FinalityProvidersStatus {
 				if ok := helper.Contains(exporter.Monikers, item.Moniker); ok {
