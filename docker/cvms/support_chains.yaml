@@ -29,6 +29,17 @@ akashnet-2:
     - upgrade
     - uptime
     - voteindexer
+allora-mainnet-1:
+  chain_name: allora
+  protocol_type: cosmos
+  mainnet: true
+  support_asset:
+    denom: uallo
+    decimal: 6
+  packages:
+    - block
+    - upgrade
+    - uptime
 allora-testnet-1:
   chain_name: allora
   protocol_type: cosmos
@@ -449,7 +460,7 @@ deluge-1:
     - block
     - upgrade
     - uptime
-    - voteindexer    
+    - voteindexer
 evmos_9000-4:
   chain_name: evmos
   protocol_type: cosmos
@@ -1267,7 +1278,7 @@ imuachaintestnet_233-8:
     - block
     - upgrade
     # - uptime
-    # - voteindexer  
+    # - voteindexer
 selfchain-testnet:
   chain_name: selfchain
   protocol_type: cosmos
@@ -1364,7 +1375,7 @@ union-testnet-9:
     - block
     - upgrade
     - uptime
-    - voteindexer    
+    - voteindexer
 union-1:
   chain_name: union
   protocol_type: cosmos
@@ -1412,7 +1423,7 @@ xrplevm_1449000-1:
     - block
     - upgrade
     - uptime
-    - voteindexer    
+    - voteindexer
 zetachain_7000-1:
   chain_name: zeta
   protocol_type: cosmos
