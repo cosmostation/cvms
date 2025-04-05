@@ -29,6 +29,7 @@ const (
 	LastFinalizedBlockMissingVotesCountMetricName = "last_finalized_block_missing_votes_count"
 	LastFinalizedBlockMissingVPMetricName         = "last_finalized_block_missing_vp"
 	LastFinalizedBlockFinalizedVPMetricName       = "last_finalized_block_finalized_vp"
+	LastFinalizedBlockHeight		      = "last_finalized_block_height"
 
 	METRIC_NAME_FINALITY_PROVIDERS_TOTAL = "total"
 )
@@ -112,6 +113,12 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		Namespace:   common.Namespace,
 		Subsystem:   Subsystem,
 		Name:        LastFinalizedBlockFinalizedVPMetricName,
+		ConstLabels: packageLabels,
+	})
+	lastFinalizedBlockHeightMetric := p.Factory.NewGauge(prometheus.GaugeOpts{
+		Namespace:   common.Namespace,
+		Subsystem:   Subsystem,
+		Name:        LastFinalizedBlockHeight,
 		ConstLabels: packageLabels,
 	})
 
@@ -234,6 +241,7 @@ func loop(exporter *common.Exporter, p common.Packager) {
 		lastFinalizedBlockMissingVotesCountMetric.Set(status.LastFinalizedBlockInfo.MissingVotes)
 		lastFinalizedBlockMissingVPMetric.Set(status.LastFinalizedBlockInfo.MissingVP)
 		lastFinalizedBlockFinalizedVPMetric.Set(status.LastFinalizedBlockInfo.FinalizedVP)
+		lastFinalizedBlockHeightMetric.Set(status.LastFinalizedBlockInfo.BlockHeight)
 
 		exporter.Infof("updated metrics successfully and going to sleep %s ...", SubsystemSleep.String())
 
