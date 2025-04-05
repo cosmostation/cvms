@@ -29,7 +29,7 @@ const (
 	LastFinalizedBlockMissingVotesCountMetricName = "last_finalized_block_missing_votes_count"
 	LastFinalizedBlockMissingVPMetricName         = "last_finalized_block_missing_vp"
 	LastFinalizedBlockFinalizedVPMetricName       = "last_finalized_block_finalized_vp"
-	LastFinalizedBlockHeight		      = "last_finalized_block_height"
+	LastFinalizedBlockHeight                      = "last_finalized_block_height"
 
 	METRIC_NAME_FINALITY_PROVIDERS_TOTAL = "total"
 )

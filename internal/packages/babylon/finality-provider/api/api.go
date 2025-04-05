@@ -73,7 +73,7 @@ func GetFinalityProviderUptime(exporter *common.Exporter) (types.BabylonFinality
 		return types.BabylonFinalityProviderUptimeStatues{}, errors.Wrap(err, "failed to get finality providers in last finalized block")
 	}
 
-	LastFinalizedBlockInfo := getLastFinalizedBlockInfo(votes, fps)
+	LastFinalizedBlockInfo := getLastFinalizedBlockInfo(votes, fps, lastFinalizedBlockHeight)
 
 	return types.BabylonFinalityProviderUptimeStatues{
 		SignedBlocksWindow:      signedBlocksWindow,
@@ -114,7 +114,7 @@ func addActiveStatus(activeProviders []commontypes.FinalityProvider, finalityPro
 	return finalityProviderInfos, jailedCnt, slashedCnt
 }
 
-func getLastFinalizedBlockInfo(votes []string, fps []commontypes.FinalityProvider) types.LastFinalizedBlockInfo {
+func getLastFinalizedBlockInfo(votes []string, fps []commontypes.FinalityProvider, blockHeight int64) types.LastFinalizedBlockInfo {
 	missingVotes := len(fps) - len(votes)
 	missingVP := float64(0)
 	finalizedVP := float64(0)
@@ -142,5 +142,6 @@ func getLastFinalizedBlockInfo(votes []string, fps []commontypes.FinalityProvide
 		MissingVotes: float64(missingVotes),
 		MissingVP:    missingVP,
 		FinalizedVP:  finalizedVP,
+		BlockHeight:  float64(blockHeight),
 	}
 }
