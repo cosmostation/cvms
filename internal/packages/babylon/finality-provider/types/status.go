@@ -22,6 +22,7 @@ type LastFinalizedBlockInfo struct {
 	MissingVotes float64
 	MissingVP    float64
 	FinalizedVP  float64
+	BlockHeight  float64
 }
 
 type FinalityProviderTotal struct {
