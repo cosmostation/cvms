@@ -13,7 +13,7 @@ func GetStatus(client *common.Exporter, protocolType string) (types.CommonBlock,
 		CommonBlockCallMethod common.Method
 		CommonBlockQueryPath  string
 		CommonBlockPayload    string
-		CommonBlockParser     func(resp []byte) (blockHeight, timeStamp float64, err error)
+		CommonBlockParser     types.BlockParser
 	)
 
 	switch protocolType {

@@ -47,12 +47,14 @@ func loop(c *common.Exporter, m common.Packager) {
 		ConstLabels: packageLabels,
 		Name:        TimestampMetricName,
 	})
-	blockHeightMetric := m.Factory.NewGauge(prometheus.GaugeOpts{
+
+	// Change block height metric to use a vector
+	blockHeightMetric := m.Factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   common.Namespace,
 		Subsystem:   Subsystem,
 		ConstLabels: packageLabels,
 		Name:        BlockHeightMetricName,
-	})
+	}, []string{common.ProposerAddressLabel})
 
 	for {
 		// NOTE: block is a default package, so skip the select node logic to GetStatus method
@@ -71,7 +73,9 @@ func loop(c *common.Exporter, m common.Packager) {
 
 		// NOTE: block package is a default package, so the metrics will be updated regardless of app mode
 		timestampMetric.Set(status.LastBlockTimeStamp)
-		blockHeightMetric.Set(status.LastBlockHeight)
+		blockHeightMetric.With(prometheus.Labels{
+			common.ProposerAddressLabel: status.ProposerAddress,
+		}).Set(status.LastBlockHeight)
 
 		c.Infof("updated metrics successfully and going to sleep %s ...", subsystemSleep.String())
 
