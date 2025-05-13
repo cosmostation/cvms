@@ -470,9 +470,9 @@ postgresql:
   ## All of these values are only used when postgresql.enabled is set to false
   ## @param postgresql.external.host Database host
   ## @param postgresql.external.port Database port number
-  ## @param postgresql.external.user Non-root username for Kong
-  ## @param postgresql.external.password Password for the non-root username for Kong
-  ## @param postgresql.external.database Kong database name
+  ## @param postgresql.external.user Non-root username
+  ## @param postgresql.external.password Password for the non-root username
+  ## @param postgresql.external.database database name
   ## @param postgresql.external.existingSecret Name of an existing secret resource containing the database credentials
   ## @param postgresql.external.existingSecretPasswordKey Name of an existing secret key containing the database credentials
   ##

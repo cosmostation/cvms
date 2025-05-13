@@ -118,10 +118,24 @@ Get PostgreSQL user
 {{- end -}}
 
 {{/*
-Get PostgreSQL password
+Get PostgreSQL password value
 */}}
-{{- define "cvms.postgresql.password" -}}
-{{- ternary .Values.postgresql.auth.password .Values.postgresql.external.password .Values.postgresql.enabled | quote -}}
+{{- define "cvms.postgresql.password.value" -}}
+{{- if .Values.postgresql.enabled -}}
+  {{- if not .Values.postgresql.auth.existingSecret -}}
+    {{- if .Values.postgresql.auth.password -}}
+      {{ .Values.postgresql.auth.password | quote }}
+    {{- else -}}
+      {{- fail "PostgreSQL password must be set either through postgresql.auth.password or postgresql.auth.existingSecret when postgresql.enabled is true" -}}
+    {{- end -}}
+  {{- end -}}
+{{- else -}}
+  {{- if .Values.postgresql.external.password -}}
+    {{ .Values.postgresql.external.password | quote }}
+  {{- else -}}
+    {{- fail "PostgreSQL external password must be set when postgresql.enabled is false" -}}
+  {{- end -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

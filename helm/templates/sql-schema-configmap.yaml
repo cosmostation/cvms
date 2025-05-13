@@ -15,7 +15,6 @@ data:
     DB_PORT={{ include "cvms.postgresql.port" . }}
     DB_USER={{ include "cvms.postgresql.user" . }}
     DB_NAME={{ include "cvms.postgresql.database" . }}
-    DB_PASSWORD={{ include "cvms.postgresql.password" . }}
 
     # GitHub API URL for the schema directory
     SCHEMA_API_URL="https://api.github.com/repos/cosmostation/cvms/contents/docker/postgres/schema"
