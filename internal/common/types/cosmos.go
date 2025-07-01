@@ -62,7 +62,7 @@ type CosmosStatus struct {
 		LatestBlockTime     time.Time `json:"latest_block_time"`
 		EarliestBlockHash   string    `json:"earliest_block_hash"`
 		EarliestAppHash     string    `json:"earliest_app_hash"`
-		EarliestBlcokHeight string    `json:"earliest_block_height"`
+		EarliestBlockHeight string    `json:"earliest_block_height"`
 		EarliestBlockTime   time.Time `json:"earliest_block_time"`
 		CatchingUp          bool      `json:"catching_up"`
 	} `json:"sync_info" validate:"required"`
@@ -199,7 +199,7 @@ type CosmosProviderValidatorsResponse struct {
 	Validators []ProviderValidator `json:"validators"`
 }
 type ProviderValidator struct {
-	PrvodierValconsAddress string `json:"provider_address"`
+	ProviderValconsAddress string `json:"provider_address"`
 	ConsumerKey            struct {
 		Pubkey string `json:"ed25519"`
 	} `json:"consumer_key"`
