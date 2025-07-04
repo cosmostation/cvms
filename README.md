@@ -40,7 +40,7 @@ In network mode, CVMS provides an overview that allows users to check the status
 
 ![network mode dashboard1](.images/network-mode-dashboard1.png)
 
-- **Example Network Mode Dashbord For Vote Extension**
+- **Example Network Mode Dashboard For Vote Extension**
 
 ![network mode dashboard2](.images/network-mode-dashboard2.png)
 
@@ -232,7 +232,7 @@ current requests across all validators into percentiles
 respond if a request was assigned to it
   - **Default labels**: chain, chain_id, mainnet, package
 - **cvms_yoda_validator_miss_summary** (per validator):  Summarizes all response delays for all
-current requests into percentiles seperated by validator
+current requests into percentiles separated by validator
   - **Default labels**: chain, chain_id, mainnet, package
   - **Package-specific labels**: moniker
 

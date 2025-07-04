@@ -55,7 +55,7 @@ func (vidx *VoteIndexer) Start() error {
 
 	// vidx.repo.InitPartitionTablesByChainInfoID(repository.IndexName, vidx.ChainID, vidx.Lh.LatestHeight)
 
-	// get last index pointer, index pointer is always initalize if not exist
+	// get last index pointer, index pointer is always initialize if not exist
 	initIndexPointer, err := vidx.repo.GetLastIndexPointerByIndexTableName(repository.IndexName, vidx.ChainInfoID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get last index pointer")
@@ -155,7 +155,7 @@ func (vidx *VoteIndexer) Loop(indexPoint int64) {
 				Infof("latest height is %d but updated index pointer is %d ... remaining %d blocks", vidx.Lh.LatestHeight, indexPoint, (vidx.Lh.LatestHeight - indexPoint))
 			time.Sleep(indexertypes.CatchingUpSleepDuration)
 		} else {
-			// when node already catched up, sleep 5 sec
+			// when node already caught up, sleep 5 sec
 			vidx.WithField("catching_up", false).
 				Infof("updated index pointer to %d and sleep %s sec...", indexPoint, indexertypes.DefaultSleepDuration.String())
 			time.Sleep(indexertypes.DefaultSleepDuration)
@@ -196,7 +196,7 @@ func (vidx *VoteIndexer) FetchValidatorInfoList() error {
 		return errors.Wrap(err, "failed to get validator info list")
 	}
 
-	// when the this pacakge starts, set validator-id map
+	// when the this package starts, set validator-id map
 	for _, validator := range validatorInfoList {
 		vidx.Vim[validator.HexAddress] = int64(validator.ID)
 	}
