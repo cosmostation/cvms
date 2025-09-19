@@ -166,7 +166,7 @@ func ParseDynamicEvent(event types.BlockEvent) (interface{}, error) {
 	}
 }
 
-// parseDynamicMessage dynamically parses the message based on its type.
+// ParseDynamicMessage dynamically parses the message based on its type.
 func ParseDynamicMessage(message json.RawMessage, typeURL string) (interface{}, error) {
 	switch typeURL {
 	case BabylonCovenantSignatureMessageType:
