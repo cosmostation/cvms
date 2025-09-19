@@ -118,7 +118,7 @@ func (p *Packager) SetInfoForBalancePackage(balanceAddresses []string, balanceDe
 	return p
 }
 
-func (p *Packager) SetAddtionalEndpoints(providerEndpoints Endpoints) *Packager {
+func (p *Packager) SetAdditionalEndpoints(providerEndpoints Endpoints) *Packager {
 	p.ProviderEndPoints = providerEndpoints
 	return p
 }
