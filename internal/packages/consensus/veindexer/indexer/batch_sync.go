@@ -233,13 +233,16 @@ func (veidx *VEIndexer) batchSync(lastIndexPointerHeight, newIndexPointerHeight 
 	// NOTE: if solo validator mode, we don't need to insert all validotors vote status.
 	// so, filter statues by moniker
 	if len(veidx.Monikers) > 0 {
+		veidx.Infof("Voteindex Moniker Length: %d, %f", len(veidx.Monikers), veidx.Monikers)
 		// if not init monikerIDMap
 		if len(veidx.MonikerIDMap) != len(veidx.Monikers) {
 			// init monikerIDMap
 			validatorInfoList, err := veidx.repo.GetValidatorInfoListByMonikers(veidx.ChainInfoID, veidx.Monikers)
 			if err != nil {
+				veidx.Info("Voteindex Moniker error by DB")
 				return lastIndexPointerHeight, errors.Wrap(err, "failed to get validator_info list by monikers")
 			}
+			veidx.Infof("Voteindex Moniker: %f", validatorInfoList)
 			monikerIDMap := make(indexertypes.MonikerIDMap)
 			for _, vi := range validatorInfoList {
 				monikerIDMap[vi.ID] = true
@@ -251,6 +254,9 @@ func (veidx *VEIndexer) batchSync(lastIndexPointerHeight, newIndexPointerHeight 
 
 		// override for solo validator
 		vevList = filterValidatorVoteListByMonikers(veidx.MonikerIDMap, vevList)
+		veidx.Infof("Override Voteindex Moniker: %f", vevList)
+	} else {
+		veidx.Info("SOLO MODE!!")
 	}
 
 	// need to save list and new pointer
