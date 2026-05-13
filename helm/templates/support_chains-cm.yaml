@@ -37,18 +37,6 @@ data:
         - upgrade
         - uptime
         - voteindexer
-    allora-testnet-1:
-      chain_name: allora
-      protocol_type: cosmos
-      mainnet: false
-      support_asset:
-        denom: uallo
-        decimal: 6
-      packages:
-        - block
-        - upgrade
-        - uptime
-        - voteindexer
     althea_258432-1:
       chain_name: althea
       protocol_type: cosmos
