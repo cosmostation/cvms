@@ -47,18 +47,6 @@ archway-1:
     - upgrade
     - uptime
     - voteindexer
-atlantic-2:
-  chain_name: sei
-  protocol_type: cosmos
-  mainnet: false
-  support_asset:
-    denom: usei
-    decimal: 6
-  packages:
-    - block
-    - upgrade
-    - uptime
-    - voteindexer
 atomone-1:
   chain_name: atomone
   protocol_type: cosmos
