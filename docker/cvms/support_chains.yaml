@@ -101,19 +101,6 @@ band-laozi-testnet6:
     - uptime
     - yoda
     - voteindexer
-bartio-beacon-80084:
-  chain_name: bera
-  protocol_type: cosmos
-  mainnet: false
-  support_asset:
-    denom: stake
-    decimal: 6
-  packages:
-    - block
-    - voteindexer
-    # TODO ref; https://github.com/berachain/beacon-kit/blob/main/mod/node-api/handlers/beacon/routes.go
-    # - upgrade
-    # - uptime
 bbn-test-6:
   chain_name: babylon
   protocol_type: cosmos
