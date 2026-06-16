@@ -729,18 +729,6 @@ ssc-testnet-3:
     - upgrade
     - uptime
     - voteindexer
-# stargaze-1:
-#   chain_name: stargaze
-#   protocol_type: cosmos
-#   mainnet: true
-#   support_asset:
-#     denom: ustars
-#     decimal: 6
-#   packages:
-#     - block
-#     - upgrade
-#     - uptime
-#     - voteindexer
 stride-1:
   chain_name: stride
   protocol_type: cosmos
